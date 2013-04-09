@@ -46,7 +46,9 @@ split
 Library
 +++++++
 
-Example::
+Example:
+
+.. code-block:: python
 
     >>> import warcat.model
     >>> warc = warcat.model.WARC()

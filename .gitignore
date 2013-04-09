@@ -1,0 +1,16 @@
+*~
+*.a
+*.o
+*.py[co]
+*.so
+*.sw[nop]
+__pycache__
+
+.project
+.pyproject
+.pydevproject
+
+build/
+dist/
+MANIFEST
+

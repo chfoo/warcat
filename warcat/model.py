@@ -36,16 +36,16 @@ class StrSerializable(metaclass=abc.ABCMeta):
         return ''.join(self.iter_str())
 
 
-class BinaryFile(metaclass=abc.ABCMeta):
+class BinaryFileRef(metaclass=abc.ABCMeta):
     def __init__(self):
         self.file_offset = None
-        self.size = None
+        self.length = None
         self.filename = None
 
-    def set_source_file(self, filename, offset=0, size=None):
+    def set_source_file(self, filename, offset=0, length=None):
         self.filename = filename
         self.file_offset = offset
-        self.size = size
+        self.length = length
 
     def iter_bytes_over_source_file(self):
         if hasattr(self.filename, 'name'):
@@ -64,15 +64,15 @@ class BinaryFile(metaclass=abc.ABCMeta):
         bytes_read = 0
 
         while True:
-            if self.size is not None:
-                size = min(4096, self.size - bytes_read)
+            if self.length is not None:
+                length = min(4096, self.length - bytes_read)
             else:
-                size = 4096
+                length = 4096
 
-            data = file_obj.read(size)
+            data = file_obj.read(length)
             bytes_read += len(data)
 
-            if not data or not size:
+            if not data or not length:
                 break
 
             yield data
@@ -213,7 +213,7 @@ class WARC(BytesSerializable):
     def read_record(self, file_object):
         record = Record.load(file_object)
         self.records.append(record)
-        _logger.info('Read a record %s', record.record_id)
+        _logger.info('Finished reading a record %s', record.record_id)
 
         data = file_object.read(len(FIELD_DELIM_BYTES))
 
@@ -244,22 +244,28 @@ class Record(BytesSerializable):
     def load(cls, file_obj):
         record = Record()
         record.file_offset = file_obj.tell()
-        header_size = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
+        header_length = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
             inclusive=True)
-        record.header = Header.parse(file_obj.read(header_size))
-        block_size = record.content_length
+        record.header = Header.parse(file_obj.read(header_length))
+        block_length = record.content_length
 
-        _logger.debug('Block size=%d', block_size)
-
-        field_cls = None
+        _logger.debug('Block length=%d', block_length)
 
         if record.warc_type in HTML_BLOCKS:
-            field_cls = HTTPHeaders
+            record.content_block = BlockWithPayload.load(file_obj,
+                block_length, field_cls=HTTPHeaders)
         elif record.warc_type in BLOCKS_WITH_FIELDS:
-            field_cls = Fields
+            record.content_block = BlockWithPayload.load(file_obj,
+                block_length, field_cls=Fields)
+        else:
+            record.content_block = BinaryBlock.load(file_obj, block_length)
 
-        record.content_block = ContentBlock.load(file_obj, block_size,
-            field_cls=field_cls)
+        new_content_length = record.content_block.length
+
+        if block_length != new_content_length:
+            _logger.warn('Content block length changed from %d to %d',
+                record.content_length, new_content_length)
+            record.content_length = new_content_length
 
         return record
 
@@ -308,58 +314,77 @@ class Record(BytesSerializable):
         yield NEWLINE_BYTES
 
 
-class ContentBlock(BytesSerializable, BinaryFile):
+class ContentBlock(BytesSerializable):
+    pass
+
+
+class BinaryBlock(ContentBlock, BinaryFileRef):
+    '''A content block that is octet data'''
+
+    def iter_bytes(self):
+        for v in self.iter_bytes_over_source_file():
+            yield v
+
+    @classmethod
+    def load(cls, file_obj, length):
+        binary_block = BinaryBlock()
+        binary_block.set_source_file(file_obj, offset=file_obj.tell(),
+            length=length)
+
+        file_obj.seek(file_obj.tell() + length)
+
+        _logger.debug('Binary content block length=%d', binary_block.length)
+
+        return binary_block
+
+
+class BlockWithPayload(ContentBlock):
     '''A content block (fields/data) within a Record'''
 
     def __init__(self):
-        BinaryFile.__init__(self)
         self.fields = None
         self.payload = None
 
     @classmethod
-    def load(cls, file_obj, size, field_cls=None):
-        content_block = ContentBlock()
-        content_block.set_source_file(file_obj, offset=file_obj.tell(),
-            size=size)
+    def load(cls, file_obj, length, field_cls):
+        content_block = BlockWithPayload()
 
-        if field_cls:
-            field_size = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
-                limit=size, inclusive=True)
-            content_block.fields = field_cls.parse(
-                file_obj.read(field_size).decode())
+        field_length = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
+            limit=length, inclusive=True)
+        content_block.fields = field_cls.parse(
+            file_obj.read(field_length).decode())
 
-            payload_size = size - field_size
+        payload_length = length - field_length
 
-            content_block.payload = Payload()
-            content_block.payload.set_source_file(file_obj,
-                offset=file_obj.tell(), size=payload_size)
-            _logger.debug('Field size=%d', field_size)
-            _logger.debug('Payload size=%d', payload_size)
-        else:
-            _logger.debug('Content block size=%d', content_block.size)
+        content_block.payload = Payload()
+        content_block.payload.set_source_file(file_obj,
+            offset=file_obj.tell(), length=payload_length)
+        _logger.debug('Field length=%d', field_length)
+        _logger.debug('Payload length=%d', payload_length)
 
-        file_obj.seek(content_block.file_offset + content_block.size)
+        file_obj.seek(file_obj.tell() + payload_length)
         return content_block
 
+    @property
+    def length(self):
+        return (len(bytes(self.fields)) + len(NEWLINE_BYTES) +
+            self.payload.length)
+
     def iter_bytes(self):
-        if self.fields and self.payload:
-            for v in self.fields.iter_bytes():
-                yield v
+        for v in self.fields.iter_bytes():
+            yield v
 
-            yield NEWLINE_BYTES
+        yield NEWLINE_BYTES
 
-            for v in self.payload.iter_bytes():
-                yield v
-        else:
-            for v in self.iter_bytes_over_source_file():
-                yield v
+        for v in self.payload.iter_bytes():
+            yield v
 
 
-class Payload(BytesSerializable, BinaryFile):
-    '''Data within a content block'''
+class Payload(BytesSerializable, BinaryFileRef):
+    '''Data within a content block that has fields'''
 
     def __init__(self):
-        BinaryFile.__init__(self)
+        BinaryFileRef.__init__(self)
 
     def iter_bytes(self):
         for v in self.iter_bytes_over_source_file():

@@ -59,7 +59,9 @@ class TestReading(unittest.TestCase):
 
         self.assertEqual('0.18', record.header.version)
         self.assertEqual('warcinfo', record.warc_type)
-        self.assertEqual(398, record.content_length)
+        self.assertEqual(400, record.content_length,
+            'newline between named fields and 0-length payload not accounted'
+            ' for')
         self.assertEqual(5, len(record.header.fields))
 
         content_block = record.content_block

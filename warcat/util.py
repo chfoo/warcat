@@ -10,7 +10,7 @@ def printable_str_to_str(s):
         .replace(r'\t', '\t')
 
 
-def find_file_pattern(file_obj, pattern, bufsize=1024, limit=None,
+def find_file_pattern(file_obj, pattern, bufsize=512, limit=None,
 inclusive=False):
     original_position = file_obj.tell()
     bytes_read = 0

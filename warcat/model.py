@@ -12,8 +12,6 @@ import re
 NEWLINE = '\r\n'
 NEWLINE_BYTES = b'\r\n'
 FIELD_DELIM_BYTES = NEWLINE_BYTES * 2
-BLOCKS_WITH_FIELDS = ['warcinfo', 'response', 'request', 'metadata', 'revisit']
-HTML_BLOCKS = ['response', 'request', 'revisit']
 
 _logger = logging.getLogger(__name__)
 
@@ -117,7 +115,7 @@ class Fields(StrSerializable, BytesSerializable):
 
     def get(self, name, default=None):
         try:
-            return self._list['name']
+            return self[name]
         except KeyError:
             return default
 
@@ -251,10 +249,12 @@ class Record(BytesSerializable):
 
         _logger.debug('Block length=%d', block_length)
 
-        if record.warc_type in HTML_BLOCKS:
+        content_type = record.header.fields.get('content-type')
+
+        if content_type and content_type.startswith('application/http'):
             record.content_block = BlockWithPayload.load(file_obj,
                 block_length, field_cls=HTTPHeaders)
-        elif record.warc_type in BLOCKS_WITH_FIELDS:
+        elif content_type == 'application/warc-fields':
             record.content_block = BlockWithPayload.load(file_obj,
                 block_length, field_cls=Fields)
         else:

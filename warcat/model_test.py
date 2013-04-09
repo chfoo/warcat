@@ -1,5 +1,4 @@
 from warcat import model, util
-import hashlib
 import os.path
 import unittest
 

@@ -1,3 +1,4 @@
 recursive-include example/
 include README.rst
 include requirements.txt
+include COPYING.txt

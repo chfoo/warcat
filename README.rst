@@ -104,4 +104,5 @@ To-do
 * Verify hash digests
 * Conformance checking
 * Smart archive join
+* etc.
 

@@ -1,3 +1,8 @@
+'''Utility functions'''
+# Copyright 2013 Christopher Foo <chris.foo@gmail.com>
+# Licensed under GPLv3. See COPYING.txt for details.
+
+
 def printable_str_to_str(s):
     return s.translate(str.maketrans('', '', '\t\r\n'))\
         .replace(r'\r', '\r')\

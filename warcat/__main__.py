@@ -1,3 +1,5 @@
+# Copyright 2013 Christopher Foo <chris.foo@gmail.com>
+# Licensed under GPLv3. See COPYING.txt for details.
 from warcat import util
 from warcat.model import WARC
 import argparse

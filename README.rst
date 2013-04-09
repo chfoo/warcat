@@ -88,6 +88,16 @@ Specification
 This implementation is based loosely on draft ISO 28500 papers ``WARC_ISO_28500_version1_latestdraft.pdf`` and ``warc_ISO_DIS_28500.pdf`` which can be found at http://bibnum.bnf.fr/WARC/ .
 
 
+File format
++++++++++++
+
+Here's a quick description:
+
+A WARC file contains one or more Records concatenated together. Each Record contains Named Fields, newline, a Content Block, newline, and newline. A Content Block may be two types: {binary data} or {Named Fields, newline, and binary data}. Named Fields consists of string, colon, string, and newline.
+
+A Record may be compressed with gzip. Filenames ending with ``.warc.gz`` indicate one or more gzip compressed files concatenated together.
+
+
 Alternatives
 ++++++++++++
 

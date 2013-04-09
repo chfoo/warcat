@@ -5,6 +5,7 @@ from warcat import util
 import abc
 import collections
 import gzip
+import io
 import isodate
 import logging
 import re
@@ -197,7 +198,7 @@ class WARC(BytesSerializable):
         if filename.endswith('.gz'):
             with gzip.open(filename) as f:
                 _logger.info('Opened gziped file %s', filename)
-                self.read_file_object(f)
+                self.read_file_object(io.BufferedReader(f))
         else:
             with open(filename, 'rb') as f:
                 _logger.info('Opened file %s', filename)
@@ -303,6 +304,8 @@ class Record(BytesSerializable):
         self.header.fields['WARC-Type'] = s
 
     def iter_bytes(self):
+        _logger.debug('Iter bytes on record %s', self.record_id)
+
         for v in self.header.iter_bytes():
             yield v
 

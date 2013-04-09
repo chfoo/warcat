@@ -70,7 +70,7 @@ Example:
     [('software', 'Wget/1.13.4-2608 (linux-gnu)'), ('format', 'WARC File Format 1.0'), ('conformsTo', 'http://bibnum.bnf.fr/WARC/WARC_ISO_28500_version1_latestdraft.pdf'), ('robots', 'classic'), ('wget-arguments', '"http://www.archiveteam.org/" "--warc-file=at" ')]
     >>> record.content_block.fields['software']
     'Wget/1.13.4-2608 (linux-gnu)'
-    >>> record.content_block.payload.size
+    >>> record.content_block.payload.length
     0
     >>> bytes(warc)[:60]
     b'WARC/1.0\r\nWARC-Type: warcinfo\r\nContent-Type: application/war'

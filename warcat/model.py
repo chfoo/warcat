@@ -459,7 +459,7 @@ class BlockWithPayload(ContentBlock):
 
         :param file_obj: The file object
         :param length: How much to read from the file
-        :param field_cls: The class or subclass of :class:`Field`
+        :param field_cls: The class or subclass of :class:`Fields`
         '''
 
         content_block = BlockWithPayload()

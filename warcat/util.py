@@ -61,6 +61,8 @@ inclusive=False):
 
 
 def strip_warc_extension(s):
+    '''Removes ``.warc`` or ``.warc.gz`` from filename'''
+
     if s.endswith('.gz'):
         s = s[:-3]
 
@@ -187,6 +189,8 @@ class DiskBufferedReader(io.BufferedIOBase):
 
 
 class FileCache(object):
+    '''A cache containing references to file objects'''
+
     def __init__(self, size=4):
         self._size = size
         self._files = collections.deque()
@@ -212,6 +216,7 @@ class FileCache(object):
 
 
 def copyfile_obj(source, dest, bufsize=4096, max_length=None):
+    '''Like :func:`shutil.copyfileobj` but with limit on how much to copy'''
     bytes_read = 0
 
     while True:
@@ -230,3 +235,5 @@ def copyfile_obj(source, dest, bufsize=4096, max_length=None):
 
 
 file_cache = FileCache()
+'''The :class:`FileCache` instance'''
+

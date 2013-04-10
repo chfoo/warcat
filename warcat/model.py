@@ -17,8 +17,11 @@ _logger = logging.getLogger(__name__)
 
 
 class BytesSerializable(metaclass=abc.ABCMeta):
+    '''Metaclass that indicates this object can be serialized to bytes'''
+
     @abc.abstractmethod
     def iter_bytes(self):
+        '''Return an iterable of bytes'''
         pass
 
     def __bytes__(self):
@@ -26,8 +29,11 @@ class BytesSerializable(metaclass=abc.ABCMeta):
 
 
 class StrSerializable(metaclass=abc.ABCMeta):
+    '''Metaclass that indicates this object can be serialized to str'''
+
     @abc.abstractmethod
     def iter_str(self):
+        '''Return an iterable of str'''
         pass
 
     def __str__(self):
@@ -35,17 +41,23 @@ class StrSerializable(metaclass=abc.ABCMeta):
 
 
 class BinaryFileRef(metaclass=abc.ABCMeta):
+    '''Reference to a file containing the content block data'''
+
     def __init__(self):
         self.file_offset = None
         self.length = None
         self.filename = None
 
     def set_source_file(self, filename, offset=0, length=None):
+        '''Set the reference to the file with the data'''
+
         self.filename = filename
         self.file_offset = offset
         self.length = length
 
     def iter_bytes_over_source_file(self):
+        '''Return an iterable of bytes of the source data'''
+
         if hasattr(self.filename, 'name'):
             filename = self.filename.name
         else:
@@ -82,7 +94,11 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
 
 
 class Fields(StrSerializable, BytesSerializable):
-    '''Name and value pseudo-map list'''
+    '''Name and value pseudo-map list
+
+    Behaves like a `dict` or mutable mapping. Mutable mapping operations
+    remove any duplicates in the field list.
+    '''
 
     def __init__(self, field_list=None):
         self._list = [] if field_list is None else field_list
@@ -114,6 +130,7 @@ class Fields(StrSerializable, BytesSerializable):
         self._list[:] = [x for x in self._list if x[0].lower() != name.lower()]
 
     def add(self, name, value):
+        '''Append a name-value field to the list'''
         self._list.append((name, value))
 
     def get(self, name, default=None):
@@ -123,12 +140,18 @@ class Fields(StrSerializable, BytesSerializable):
             return default
 
     def get_list(self, name):
+        '''Return a list of values'''
+
         return list([x for x in self._list if x[0].lower() == name.lower()])
 
     def count(self, name):
+        '''Count the number of times this name occurs in the list'''
+
         return len(self.get_list(name))
 
     def index(self, name):
+        '''Return the index of the first occurance of given name'''
+
         for i in range(len(self._list)):
             if self._list[i][0].lower() == name.lower():
                 return i
@@ -136,6 +159,8 @@ class Fields(StrSerializable, BytesSerializable):
         raise KeyError('Name {} not found in fields'.format(name))
 
     def list(self):
+        '''Return the underlying list'''
+
         return self._list
 
     def keys(self):
@@ -158,6 +183,8 @@ class Fields(StrSerializable, BytesSerializable):
 
     @classmethod
     def parse(cls, s, newline=NEWLINE):
+        '''Parse a named field string and return a :class:`Fields`'''
+
         fields = Fields()
         lines = collections.deque(re.split(newline, s))
 
@@ -176,6 +203,8 @@ class Fields(StrSerializable, BytesSerializable):
 
     @classmethod
     def join_multilines(cls, value, lines):
+        '''Scan for multiline value which is prefixed with a space or tab'''
+
         while len(lines):
             line = lines.popleft()
 
@@ -191,17 +220,28 @@ class Fields(StrSerializable, BytesSerializable):
 
 
 class WARC(BytesSerializable):
-    '''A Web ARChive file model'''
+    '''A Web ARChive file model.
+
+    Typically, large streaming operations should use :func:`open` and
+    :func:`read_record` functions.
+    '''
 
     def __init__(self):
         self.records = []
 
     def load(self, filename):
+        '''Open and load the contents of the given filename.
+
+        The records are located in :attr:`records`.
+        '''
+
         f = self.open(filename)
         self.read_file_object(f)
         f.close()
 
     def read_file_object(self, file_object):
+        '''Read records until the file object is exhausted'''
+
         while True:
             record, has_more = self.read_record(file_object)
             self.records.append(record)
@@ -210,6 +250,13 @@ class WARC(BytesSerializable):
 
     @classmethod
     def open(cls, filename, force_gzip=False):
+        '''Return a logical file object.
+
+        :param filename: The path of the file. gzip compression is detected
+            using file extension.
+        :param force_gzip: Use gzip compression always.
+        '''
+
         if filename.endswith('.gz') or force_gzip:
             f = gzip.open(filename)
             _logger.info('Opened gziped file %s', filename)
@@ -221,6 +268,15 @@ class WARC(BytesSerializable):
 
     @classmethod
     def read_record(cls, file_object, preserve_block=False):
+        '''Return a record and whether there are more records to read.
+
+        .. seealso:: :class:`Record`
+
+        :return: A tuple. The first item is the :class:`Record`. The second
+            item is a boolean indicating whether there are more records to
+            be read.
+        '''
+
         record = Record.load(file_object, preserve_block=preserve_block)
         _logger.debug('Finished reading a record %s', record.record_id)
 
@@ -244,7 +300,21 @@ class WARC(BytesSerializable):
 
 
 class Record(BytesSerializable):
-    '''A WARC Record within a WARC file'''
+    '''A WARC Record within a WARC file.
+
+
+    .. attribute:: header
+
+        :class:`Header`
+
+    .. attribute:: content_block
+
+        A :class:`BinaryBlock` or :class:`BlockWithPayload`
+
+    .. attribute:: file_offset
+
+        An `int` descripting the location of the record in the file.
+    '''
 
     def __init__(self):
         self.header = Header()
@@ -253,6 +323,14 @@ class Record(BytesSerializable):
 
     @classmethod
     def load(cls, file_obj, preserve_block=False):
+        '''Parse and return a :class:`Record`
+
+        :param file_object: A file-like object.
+        :param preserve_block: If `True`, content blocks are not parsed
+            for fields and payloads. Enabling this feature ensures
+            preservation of content length and hash digests.
+        '''
+
         _logger.debug('Record start at %d 0x%x', file_obj.tell(),
             file_obj.tell())
 
@@ -346,6 +424,8 @@ class BinaryBlock(ContentBlock, BinaryFileRef):
 
     @classmethod
     def load(cls, file_obj, length):
+        '''Return a :class:`BinaryBlock` using given file object'''
+
         binary_block = BinaryBlock()
         binary_block.set_source_file(file_obj, offset=file_obj.tell(),
             length=length)
@@ -358,7 +438,16 @@ class BinaryBlock(ContentBlock, BinaryFileRef):
 
 
 class BlockWithPayload(ContentBlock):
-    '''A content block (fields/data) within a Record'''
+    '''A content block (fields/data) within a :class:`Record`.
+
+    .. attribute:: fields
+
+        :class:`Fields`
+
+    .. attribute:: payload
+
+        :class:`Payload`
+    '''
 
     def __init__(self):
         self.fields = None
@@ -366,6 +455,13 @@ class BlockWithPayload(ContentBlock):
 
     @classmethod
     def load(cls, file_obj, length, field_cls):
+        '''Return a :class:`BlockWithPayload`
+
+        :param file_obj: The file object
+        :param length: How much to read from the file
+        :param field_cls: The class or subclass of :class:`Field`
+        '''
+
         content_block = BlockWithPayload()
 
         try:
@@ -391,6 +487,8 @@ class BlockWithPayload(ContentBlock):
 
     @property
     def length(self):
+        '''Return the new computed length'''
+
         return (len(bytes(self.fields)) + len(NEWLINE_BYTES) +
             self.payload.length)
 
@@ -416,7 +514,16 @@ class Payload(BytesSerializable, BinaryFileRef):
 
 
 class Header(StrSerializable, BytesSerializable):
-    '''A header of a WARC Record'''
+    '''A header of a WARC Record.
+
+    .. attribute:: version
+
+        A `str` containing the version
+
+    .. attribute:: fields
+
+        The :class:`Fields` object.
+    '''
 
     def __init__(self):
         self.version = None
@@ -424,6 +531,8 @@ class Header(StrSerializable, BytesSerializable):
 
     @classmethod
     def parse(cls, b):
+        '''Parse from `bytes` and return :class:`Header`'''
+
         header = Header()
         version_line, field_str = b.decode().split(NEWLINE, 1)
 
@@ -453,7 +562,12 @@ class Header(StrSerializable, BytesSerializable):
 
 
 class HTTPHeaders(Fields):
-    '''Fields extended with a HTTP status attribute'''
+    '''Fields extended with a HTTP status attribute.
+
+    .. attribute:: status
+
+        The `str` of the HTTP status message and code.
+    '''
 
     def __init__(self, *args):
         Fields.__init__(self, *args)

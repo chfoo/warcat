@@ -1,3 +1,4 @@
+'''Archive process tools'''
 from warcat import util
 from warcat.model import WARC
 import abc
@@ -12,6 +13,8 @@ _logger = logging.getLogger(__name__)
 
 
 class BaseIterateTool(metaclass=abc.ABCMeta):
+    '''Base class for iterating through records'''
+
     def __init__(self, filenames, out_file=sys.stdout.buffer, write_gzip=False,
     force_read_gzip=None, read_record_ids=None, preserve_block=True):
         self.filenames = filenames

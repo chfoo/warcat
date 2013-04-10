@@ -77,6 +77,32 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
     def iter_bytes_over_source_file(self, buffer_size=4096):
         '''Return an iterable of bytes of the source data'''
 
+        file_obj = self.get_file_object()
+        bytes_read = 0
+
+        while True:
+            if self.length is not None:
+                length = min(buffer_size, self.length - bytes_read)
+            else:
+                length = buffer_size
+
+            data = file_obj.read(length)
+            bytes_read += len(data)
+
+            if not data or not length:
+                break
+
+            yield data
+
+    def get_file_object(self):
+        '''Return a file object with the data.
+
+        .. note::
+
+            The file object returned may be part of a larger file.
+            Do not seek or read beyond the offset and length!
+        '''
+
         if self.filename:
             file_obj = util.file_cache.get(self.filename)
 
@@ -94,21 +120,7 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
         if self.file_offset:
             file_obj.seek(self.file_offset)
 
-        bytes_read = 0
-
-        while True:
-            if self.length is not None:
-                length = min(buffer_size, self.length - bytes_read)
-            else:
-                length = buffer_size
-
-            data = file_obj.read(length)
-            bytes_read += len(data)
-
-            if not data or not length:
-                break
-
-            yield data
+        return file_obj
 
 
 class Fields(StrSerializable, BytesSerializable):
@@ -493,6 +505,9 @@ class BlockWithPayload(ContentBlock):
         :param field_cls: The class or subclass of :class:`Fields`
         '''
 
+        binary_block = BinaryBlock()
+        binary_block.set_source_file(file_obj, file_obj.tell(), length)
+
         try:
             field_length = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
                 limit=length, inclusive=True)
@@ -511,7 +526,10 @@ class BlockWithPayload(ContentBlock):
 
         file_obj.seek(file_obj.tell() + payload_length)
 
-        return BlockWithPayload(fields, payload)
+        block = BlockWithPayload(fields, payload)
+        block.binary_block = binary_block
+
+        return block
 
     @property
     def length(self):
@@ -600,6 +618,10 @@ class HTTPHeaders(Fields):
     def __init__(self, field_list=None, status=None):
         Fields.__init__(self, field_list=field_list)
         self.status = status
+
+    @property
+    def status_code(self):
+        return int(self.status.split()[1])
 
     @classmethod
     def parse(cls, s, newline=NEWLINE):

@@ -65,7 +65,13 @@ def help_command(args=None, file=sys.stderr):
         print('{}\n    {}'.format(command, label), file=file)
 
 
+# TODO: these commands are starting to look similar to each other
+# they can be generalized and move to a separate module such as 'warcat.tool'
+
+
 def list_command(args):
+    num_records = 0
+
     for filename in args.file:
         f = WARC.open(filename, force_gzip=args.force_read_gzip)
 
@@ -73,6 +79,7 @@ def list_command(args):
             record, has_more = WARC.read_record(f)
 
             print('Record:', record.record_id)
+            print('  Order:', num_records)
             print('  File offset:', record.file_offset)
             print('  Type:', record.warc_type)
             print('  Date:', isodate.datetime_isoformat(record.date))
@@ -80,6 +87,8 @@ def list_command(args):
 
             if not has_more:
                 break
+
+            num_records += 1
 
         f.close()
 
@@ -138,6 +147,8 @@ def concat_command(args):
 
 
 def split_command(args):
+    records_written = 0
+
     for filename in args.file:
         source_f = WARC.open(filename, force_gzip=args.force_read_gzip)
         i = 0
@@ -160,9 +171,10 @@ def split_command(args):
 
             f.close()
             i += 1
+            records_written += 1
 
             if i % 1000 == 0:
-                _logger.info('Wrote %d records so far', i)
+                _logger.info('Wrote %d records so far', records_written)
 
             if not has_more:
                 break

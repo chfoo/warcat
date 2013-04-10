@@ -88,6 +88,12 @@ Example:
 About
 =====
 
+The goal of the Warcat project is to create a tool and library as easy and fast as manipulating any other archive such as tar and zip archives.
+
+Warcat is designed to handle large, gzip-ed files by partially extracting them as needed.
+
+Warcat is provided without warranty and cannot guarantee the safety of your files. Remember to make backups and test them!
+
 
 Specification
 +++++++++++++
@@ -117,11 +123,25 @@ Warcat is inspired by
 Development
 ===========
 
+Testing
++++++++
+
+Always remember to test. Continue testing::
+
+    python3 -m unittest discover -p '*_test.py'
+    nosetests3
+
+
 To-do
 +++++
 
 * Verify hash digests
 * Conformance checking
 * Smart archive join
+* Extract as files
+* Option to specify which record to extract
+* Generate index
+* Grab files like wget and archive them
+* See TODO and FIXME markers in code
 * etc.
 

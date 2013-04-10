@@ -34,3 +34,11 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(b'0', f.read(1))
         self.assertEqual(b'1', f.read(1))
         self.assertEqual(b'2', f.peek(1))
+
+    def test_find_file_pattern_loop_boundary(self):
+        for i in range(1000):
+            data = b'x' * i + b'\r\n\r\nabcdefghijklmnop'
+
+            f = io.BytesIO(data)
+
+            self.assertEqual(i, util.find_file_pattern(f, b'\r\n\r\n'))

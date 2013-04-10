@@ -78,6 +78,13 @@ Example:
     b'software: Wget/1.13.4-2608 (linux-gnu)\r\nformat: WARC File Fo'
 
 
+.. important::
+
+    The library is not entirely thread-safe yet.
+    
+    * Shared file objects in the file cache 
+
+
 About
 =====
 

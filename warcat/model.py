@@ -254,6 +254,9 @@ class Record(BytesSerializable):
 
     @classmethod
     def load(cls, file_obj):
+        _logger.debug('Record start at %d 0x%x', file_obj.tell(),
+            file_obj.tell())
+
         record = Record()
         record.file_offset = file_obj.tell()
         header_length = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
@@ -365,8 +368,13 @@ class BlockWithPayload(ContentBlock):
     def load(cls, file_obj, length, field_cls):
         content_block = BlockWithPayload()
 
-        field_length = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
-            limit=length, inclusive=True)
+        try:
+            field_length = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
+                limit=length, inclusive=True)
+        except ValueError:
+            # No payload
+            field_length = length
+
         content_block.fields = field_cls.parse(
             file_obj.read(field_length).decode())
 

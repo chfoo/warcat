@@ -18,10 +18,14 @@ def printable_str_to_str(s):
         .replace(r'\t', '\t')
 
 
-def find_file_pattern(file_obj, pattern, bufsize=512, limit=None,
+def find_file_pattern(file_obj, pattern, bufsize=512, limit=4096,
 inclusive=False):
+    '''Find the offset from current position of pattern'''
+
     original_position = file_obj.tell()
     bytes_read = 0
+    # FIXME: don't accumulate growing buffer
+    search_buf = io.BytesIO()
 
     while True:
         if limit:
@@ -34,12 +38,14 @@ inclusive=False):
         if not data:
             break
 
+        search_buf.write(data)
+
         try:
-            index = data.index(pattern)
+            index = search_buf.getvalue().index(pattern)
         except ValueError:
             pass
         else:
-            offset = bytes_read + index
+            offset = index
 
             if inclusive:
                 offset += len(pattern)
@@ -50,7 +56,8 @@ inclusive=False):
         bytes_read += len(data)
 
     file_obj.seek(original_position)
-    return bytes_read
+
+    raise ValueError('Search for pattern exhausted')
 
 
 def strip_warc_extension(s):

@@ -41,37 +41,55 @@ class StrSerializable(metaclass=abc.ABCMeta):
 
 
 class BinaryFileRef(metaclass=abc.ABCMeta):
-    '''Reference to a file containing the content block data'''
+    '''Reference to a file containing the content block data.
+
+    This class is not thread-safe as file objects may be cached and
+    reused repeatedly.
+    '''
 
     def __init__(self):
-        self.file_offset = None
+        self.file_offset = 0
         self.length = None
         self.filename = None
+        self.file_obj = None
 
-    def set_source_file(self, filename, offset=0, length=None):
-        '''Set the reference to the file with the data'''
+    def set_source_file(self, file, offset=0, length=None):
+        '''Set the reference to the file or filename with the data.
 
-        self.filename = filename
+        If a file object with a ``name`` attribute is provided,
+        it will use that instead to prevent race conditions with seeking.
+        If a file-like object is provided, it will use it plainly.
+        Otherwise, it is assumed that it is a filename.
+
+        File objects are not closed automatically.
+        '''
+
+        if hasattr(file, 'name'):
+            self.filename = file.name
+        elif hasattr(file, 'read'):
+            self.file_obj = file
+        else:
+            self.filename = file
+
         self.file_offset = offset
         self.length = length
 
-    def iter_bytes_over_source_file(self):
+    def iter_bytes_over_source_file(self, buffer_size=4096):
         '''Return an iterable of bytes of the source data'''
 
-        if hasattr(self.filename, 'name'):
-            filename = self.filename.name
+        if self.filename:
+            file_obj = util.file_cache.get(self.filename)
+
+            if not file_obj:
+                if self.filename.endswith('.gz'):
+                    file_obj = util.DiskBufferedReader(
+                        gzip.GzipFile(self.filename))
+                else:
+                    file_obj = open(self.filename, 'rb')
+
+                util.file_cache.put(self.filename, file_obj)
         else:
-            filename = self.filename
-
-        file_obj = util.file_cache.get(filename)
-
-        if not file_obj:
-            if filename.endswith('.gz'):
-                file_obj = util.DiskBufferedReader(gzip.GzipFile(filename))
-            else:
-                file_obj = open(filename, 'rb')
-
-            util.file_cache.put(filename, file_obj)
+            file_obj = self.file_obj
 
         if self.file_offset:
             file_obj.seek(self.file_offset)
@@ -80,9 +98,9 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
 
         while True:
             if self.length is not None:
-                length = min(4096, self.length - bytes_read)
+                length = min(buffer_size, self.length - bytes_read)
             else:
-                length = 4096
+                length = buffer_size
 
             data = file_obj.read(length)
             bytes_read += len(data)
@@ -313,11 +331,12 @@ class Record(BytesSerializable):
 
     .. attribute:: file_offset
 
-        An `int` descripting the location of the record in the file.
+        If this record was loaded from a file, this attribute contains
+        an `int` describing the location of the record in the file.
     '''
 
-    def __init__(self):
-        self.header = Header()
+    def __init__(self, header=None, content_block=None):
+        self.header = header or Header()
         self.content_block = None
         self.file_offset = None
 
@@ -343,15 +362,10 @@ class Record(BytesSerializable):
 
         _logger.debug('Block length=%d', block_length)
 
-        content_type = record.header.fields.get('content-type')
-
-        if not preserve_block and content_type \
-        and content_type.startswith('application/http'):
-            record.content_block = BlockWithPayload.load(file_obj,
-                block_length, field_cls=HTTPHeaders)
-        elif not preserve_block and content_type == 'application/warc-fields':
-            record.content_block = BlockWithPayload.load(file_obj,
-                block_length, field_cls=Fields)
+        if not preserve_block:
+            content_type = record.header.fields.get('content-type')
+            record.content_block = ContentBlock.load(file_obj, block_length,
+                content_type)
         else:
             record.content_block = BinaryBlock.load(file_obj, block_length)
 
@@ -412,7 +426,17 @@ class Record(BytesSerializable):
 
 
 class ContentBlock(BytesSerializable):
-    pass
+    @classmethod
+    def load(cls, file_obj, length, content_type):
+        '''Load and return :class:`BinaryBlock` or :class:`BlockWithPayload`'''
+
+        if content_type.startswith('application/http'):
+            return BlockWithPayload.load(file_obj, length,
+                field_cls=HTTPHeaders)
+        elif content_type.startswith('application/warc-fields'):
+            return BlockWithPayload.load(file_obj, length, field_cls=Fields)
+        else:
+            return BinaryBlock.load(file_obj, length)
 
 
 class BinaryBlock(ContentBlock, BinaryFileRef):
@@ -447,11 +471,18 @@ class BlockWithPayload(ContentBlock):
     .. attribute:: payload
 
         :class:`Payload`
+
+    .. attribute:: binary_block
+
+        If this block was loaded from a file, this attribute will be a
+        :class:`BinaryBlock` of the original file. Otherwise, this attribute
+        is `None`.
     '''
 
-    def __init__(self):
-        self.fields = None
-        self.payload = None
+    def __init__(self, fields=None, payload=None):
+        self.fields = fields or Fields()
+        self.payload = payload or Payload()
+        self.binary_block = None
 
     @classmethod
     def load(cls, file_obj, length, field_cls):
@@ -462,8 +493,6 @@ class BlockWithPayload(ContentBlock):
         :param field_cls: The class or subclass of :class:`Fields`
         '''
 
-        content_block = BlockWithPayload()
-
         try:
             field_length = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
                 limit=length, inclusive=True)
@@ -471,19 +500,18 @@ class BlockWithPayload(ContentBlock):
             # No payload
             field_length = length
 
-        content_block.fields = field_cls.parse(
-            file_obj.read(field_length).decode())
-
+        fields = field_cls.parse(file_obj.read(field_length).decode())
         payload_length = length - field_length
+        payload = Payload()
 
-        content_block.payload = Payload()
-        content_block.payload.set_source_file(file_obj,
-            offset=file_obj.tell(), length=payload_length)
+        payload.set_source_file(file_obj, offset=file_obj.tell(),
+            length=payload_length)
         _logger.debug('Field length=%d', field_length)
         _logger.debug('Payload length=%d', payload_length)
 
         file_obj.seek(file_obj.tell() + payload_length)
-        return content_block
+
+        return BlockWithPayload(fields, payload)
 
     @property
     def length(self):
@@ -525,15 +553,16 @@ class Header(StrSerializable, BytesSerializable):
         The :class:`Fields` object.
     '''
 
-    def __init__(self):
-        self.version = None
-        self.fields = None
+    VERSION = '1.0'
+
+    def __init__(self, version=VERSION, fields=None):
+        self.version = version
+        self.fields = fields or Fields()
 
     @classmethod
     def parse(cls, b):
         '''Parse from `bytes` and return :class:`Header`'''
 
-        header = Header()
         version_line, field_str = b.decode().split(NEWLINE, 1)
 
         _logger.debug('Version line=%s', version_line)
@@ -541,8 +570,7 @@ class Header(StrSerializable, BytesSerializable):
         if not version_line.startswith('WARC'):
             raise IOError('Wrong WARC header')
 
-        header.version = version_line[5:]
-        header.fields = Fields.parse(field_str)
+        header = Header(version_line[5:], Fields.parse(field_str))
 
         return header
 
@@ -569,9 +597,9 @@ class HTTPHeaders(Fields):
         The `str` of the HTTP status message and code.
     '''
 
-    def __init__(self, *args):
-        Fields.__init__(self, *args)
-        self.status = None
+    def __init__(self, field_list=None, status=None):
+        Fields.__init__(self, field_list=field_list)
+        self.status = status
 
     @classmethod
     def parse(cls, s, newline=NEWLINE):

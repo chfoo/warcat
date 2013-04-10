@@ -210,8 +210,8 @@ class WARC(BytesSerializable):
                 break
 
     @classmethod
-    def open(cls, filename):
-        if filename.endswith('.gz'):
+    def open(cls, filename, force_gzip=False):
+        if filename.endswith('.gz') or force_gzip:
             f = gzip.open(filename)
             _logger.info('Opened gziped file %s', filename)
             return util.DiskBufferedReader(f)

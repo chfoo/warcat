@@ -27,6 +27,9 @@ def main():
     arg_parser.add_argument('--gzip', '-z', action='store_true',
         help='When outputing a file, use gzip compression',
     )
+    arg_parser.add_argument('--force-read-gzip', action='store_true',
+        help='Instead of guessing by filename, force reading archives as'
+        ' gzip compressed')
     arg_parser.add_argument('--verbose', action='count')
 
     original_print_help = arg_parser.print_help
@@ -64,7 +67,7 @@ def help_command(args=None, file=sys.stderr):
 
 def list_command(args):
     for filename in args.file:
-        f = WARC.open(filename)
+        f = WARC.open(filename, force_gzip=args.force_read_gzip)
 
         while True:
             record, has_more = WARC.read_record(f)
@@ -89,7 +92,7 @@ def pass_command(args):
 
     for filename in args.file:
         warc = WARC()
-        warc.load(filename)
+        warc.load(filename, force_gzip=args.force_read_gzip)
 
         for v in warc.iter_bytes():
             out_file.write(v)
@@ -105,7 +108,7 @@ def concat_command(args):
     bytes_written = 0
     records_written = 0
     for filename in args.file:
-        source_f = WARC.open(filename)
+        source_f = WARC.open(filename, force_gzip=args.force_read_gzip)
 
         while True:
             record, has_more = WARC.read_record(source_f)
@@ -136,7 +139,7 @@ def concat_command(args):
 
 def split_command(args):
     for filename in args.file:
-        source_f = WARC.open(filename)
+        source_f = WARC.open(filename, force_gzip=args.force_read_gzip)
         i = 0
 
         while True:

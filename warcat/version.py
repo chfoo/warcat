@@ -1,6 +1,6 @@
 '''Version info'''
 
-short_version = '0.8'
+short_version = '0.9'
 __version__ = short_version + ''
 
 try:

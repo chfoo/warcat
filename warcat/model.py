@@ -52,10 +52,15 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
         else:
             filename = self.filename
 
-        if filename.endswith('.gz'):
-            file_obj = gzip.GzipFile(filename)
-        else:
-            file_obj = open(filename, 'rb')
+        file_obj = util.file_cache.get(filename)
+
+        if not file_obj:
+            if filename.endswith('.gz'):
+                file_obj = util.DiskBufferedReader(gzip.GzipFile(filename))
+            else:
+                file_obj = open(filename, 'rb')
+
+            util.file_cache.put(filename, file_obj)
 
         if self.file_offset:
             file_obj.seek(self.file_offset)
@@ -75,8 +80,6 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
                 break
 
             yield data
-
-        file_obj.close()
 
 
 class Fields(StrSerializable, BytesSerializable):
@@ -198,7 +201,7 @@ class WARC(BytesSerializable):
         if filename.endswith('.gz'):
             with gzip.open(filename) as f:
                 _logger.info('Opened gziped file %s', filename)
-                self.read_file_object(io.BufferedReader(f))
+                self.read_file_object(util.DiskBufferedReader(f))
         else:
             with open(filename, 'rb') as f:
                 _logger.info('Opened file %s', filename)
@@ -212,7 +215,7 @@ class WARC(BytesSerializable):
     def read_record(self, file_object):
         record = Record.load(file_object)
         self.records.append(record)
-        _logger.info('Finished reading a record %s', record.record_id)
+        _logger.debug('Finished reading a record %s', record.record_id)
 
         data = file_object.read(len(FIELD_DELIM_BYTES))
 

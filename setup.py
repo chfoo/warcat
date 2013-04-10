@@ -7,7 +7,7 @@ setup(name='Warcat',
     description='Tool and library for handling Web ARChive (WARC) files.',
     author='Christopher Foo',
     author_email='chris.foo@gmail.com',
-#    url='',
+    url='https://github.com/chfoo/warcat',
     packages=['warcat'],
     classifiers=['Programming Language :: Python :: 3',]
 )

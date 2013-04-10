@@ -1,4 +1,7 @@
-recursive-include example/
+graft example
+graft doc
 include README.rst
 include requirements.txt
 include COPYING.txt
+global-exclude *~
+prune doc/_build

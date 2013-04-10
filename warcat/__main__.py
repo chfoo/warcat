@@ -32,6 +32,9 @@ def main():
     arg_parser.add_argument('--record', action='append',
         help='Apply command to record with given ID when reading. '
         'Can be used more than once.')
+    arg_parser.add_argument('--preserve-block', action='store_true',
+        help="Don't attempt to parse content blocks. Parsed content blocks"
+        " may not match content-length and hash digests on serialization.")
 
     original_print_help = arg_parser.print_help
 
@@ -79,6 +82,7 @@ def build_tool(class_, args):
         force_read_gzip=args.force_read_gzip,
         out_file=get_file_buffer(args.output),
         read_record_ids=args.record,
+        preserve_block=args.preserve_block,
     )
 
 

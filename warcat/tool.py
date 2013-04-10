@@ -13,13 +13,14 @@ _logger = logging.getLogger(__name__)
 
 class BaseIterateTool(metaclass=abc.ABCMeta):
     def __init__(self, filenames, out_file=sys.stdout.buffer, write_gzip=False,
-    force_read_gzip=None, read_record_ids=None):
+    force_read_gzip=None, read_record_ids=None, preserve_block=True):
         self.filenames = filenames
         self.out_file = out_file
         self.force_read_gzip = force_read_gzip
         self.write_gzip = write_gzip
         self.current_filename = None
         self.read_record_ids = read_record_ids
+        self.preserve_block = preserve_block
 
         self.init()
 
@@ -42,7 +43,8 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
             f = WARC.open(filename, force_gzip=self.force_read_gzip)
 
             while True:
-                record, has_more = WARC.read_record(f)
+                record, has_more = WARC.read_record(f,
+                    preserve_block=self.preserve_block)
 
                 skip = False
 

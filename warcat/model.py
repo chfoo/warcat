@@ -5,7 +5,6 @@ from warcat import util
 import abc
 import collections
 import gzip
-import io
 import isodate
 import logging
 import re
@@ -221,8 +220,8 @@ class WARC(BytesSerializable):
             return f
 
     @classmethod
-    def read_record(cls, file_object):
-        record = Record.load(file_object)
+    def read_record(cls, file_object, preserve_block=False):
+        record = Record.load(file_object, preserve_block=preserve_block)
         _logger.debug('Finished reading a record %s', record.record_id)
 
         data = file_object.read(len(FIELD_DELIM_BYTES))
@@ -253,7 +252,7 @@ class Record(BytesSerializable):
         self.file_offset = None
 
     @classmethod
-    def load(cls, file_obj):
+    def load(cls, file_obj, preserve_block=False):
         _logger.debug('Record start at %d 0x%x', file_obj.tell(),
             file_obj.tell())
 
@@ -268,10 +267,11 @@ class Record(BytesSerializable):
 
         content_type = record.header.fields.get('content-type')
 
-        if content_type and content_type.startswith('application/http'):
+        if not preserve_block and content_type \
+        and content_type.startswith('application/http'):
             record.content_block = BlockWithPayload.load(file_obj,
                 block_length, field_cls=HTTPHeaders)
-        elif content_type == 'application/warc-fields':
+        elif not preserve_block and content_type == 'application/warc-fields':
             record.content_block = BlockWithPayload.load(file_obj,
                 block_length, field_cls=Fields)
         else:

@@ -4,7 +4,6 @@
 import collections
 import io
 import logging
-import shutil
 import tempfile
 import threading
 
@@ -184,22 +183,25 @@ class FileCache(object):
     def __init__(self, size=4):
         self._size = size
         self._files = collections.deque()
+        self._lock = threading.Lock()
 
     def get(self, filename):
-        for cache_filename, file_obj in self._files:
-            if filename == cache_filename:
-                return file_obj
+        with self._lock:
+            for cache_filename, file_obj in self._files:
+                if filename == cache_filename:
+                    return file_obj
 
     def put(self, filename, file_obj):
-        for cache_filename, file_obj in self._files:
-            if filename == cache_filename:
-                return
+        with self._lock:
+            for cache_filename, file_obj in self._files:
+                if filename == cache_filename:
+                    return
 
-        if len(self._files) > self._size:
-            old_file_obj = self._files.popleft()[1]
-            old_file_obj.close()
+            if len(self._files) > self._size:
+                old_file_obj = self._files.popleft()[1]
+                old_file_obj.close()
 
-        self._files.append((filename, file_obj))
+            self._files.append((filename, file_obj))
 
 
 def copyfile_obj(source, dest, bufsize=4096, max_length=None):

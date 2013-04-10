@@ -1,6 +1,5 @@
 # Copyright 2013 Christopher Foo <chris.foo@gmail.com>
 # Licensed under GPLv3. See COPYING.txt for details.
-from warcat import util
 from warcat.model import WARC
 from warcat.tool import ListTool, ConcatTool, SplitTool
 import argparse
@@ -30,6 +29,9 @@ def main():
         ' gzip compressed')
     arg_parser.add_argument('--verbose', action='count',
         help='Increase verbosity. Can be used more than once.')
+    arg_parser.add_argument('--record', action='append',
+        help='Apply command to record with given ID when reading. '
+        'Can be used more than once.')
 
     original_print_help = arg_parser.print_help
 
@@ -76,6 +78,7 @@ def build_tool(class_, args):
         write_gzip=args.gzip,
         force_read_gzip=args.force_read_gzip,
         out_file=get_file_buffer(args.output),
+        read_record_ids=args.record,
     )
 
 

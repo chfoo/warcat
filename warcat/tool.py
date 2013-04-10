@@ -13,12 +13,14 @@ _logger = logging.getLogger(__name__)
 
 class BaseIterateTool(metaclass=abc.ABCMeta):
     def __init__(self, filenames, out_file=sys.stdout.buffer, write_gzip=False,
-    force_read_gzip=None):
+    force_read_gzip=None, read_record_ids=None):
         self.filenames = filenames
         self.out_file = out_file
         self.force_read_gzip = force_read_gzip
         self.write_gzip = write_gzip
         self.current_filename = None
+        self.read_record_ids = read_record_ids
+        print(read_record_ids)
 
         self.init()
 
@@ -43,7 +45,17 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
             while True:
                 record, has_more = WARC.read_record(f)
 
-                self.action(record)
+                skip = False
+
+                if self.read_record_ids:
+                    if record.record_id not in self.read_record_ids:
+                        skip = True
+
+                if skip:
+                    _logger.debug('Skipping %s due to filter',
+                        record.record_id)
+                else:
+                    self.action(record)
 
                 if not has_more:
                     break

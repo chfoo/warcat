@@ -198,23 +198,31 @@ class WARC(BytesSerializable):
         self.records = []
 
     def load(self, filename):
-        if filename.endswith('.gz'):
-            with gzip.open(filename) as f:
-                _logger.info('Opened gziped file %s', filename)
-                self.read_file_object(util.DiskBufferedReader(f))
-        else:
-            with open(filename, 'rb') as f:
-                _logger.info('Opened file %s', filename)
-                self.read_file_object(f)
+        f = self.open(filename)
+        self.read_file_object(f)
+        f.close()
 
     def read_file_object(self, file_object):
         while True:
-            if self.read_record(file_object):
+            record, has_more = self.read_record(file_object)
+            self.records.append(record)
+            if not has_more:
                 break
 
-    def read_record(self, file_object):
+    @classmethod
+    def open(cls, filename):
+        if filename.endswith('.gz'):
+            f = gzip.open(filename)
+            _logger.info('Opened gziped file %s', filename)
+            return util.DiskBufferedReader(f)
+        else:
+            f = open(filename, 'rb')
+            _logger.info('Opened file %s', filename)
+            return f
+
+    @classmethod
+    def read_record(cls, file_object):
         record = Record.load(file_object)
-        self.records.append(record)
         _logger.debug('Finished reading a record %s', record.record_id)
 
         data = file_object.read(len(FIELD_DELIM_BYTES))
@@ -226,7 +234,9 @@ class WARC(BytesSerializable):
 
         if not file_object.peek(1):
             _logger.info('Finished reading Warc')
-            return True
+            return (record, False)
+        else:
+            return (record, True)
 
     def iter_bytes(self):
         for record in self.records:

@@ -64,15 +64,21 @@ def help_command(args=None, file=sys.stderr):
 
 def list_command(args):
     for filename in args.file:
-        warc = WARC()
-        warc.load(filename)
+        f = WARC.open(filename)
 
-        for record in warc.records:
+        while True:
+            record, has_more = WARC.read_record(f)
+
             print('Record:', record.record_id)
             print('  File offset:', record.file_offset)
             print('  Type:', record.warc_type)
             print('  Date:', isodate.datetime_isoformat(record.date))
             print('  Size:', record.content_length)
+
+            if not has_more:
+                break
+
+        f.close()
 
 
 def pass_command(args):
@@ -96,11 +102,14 @@ def concat_command(args):
         file_obj = args.output
         file_obj.truncate()
 
+    bytes_written = 0
+    records_written = 0
     for filename in args.file:
-        warc = WARC()
-        warc.load(filename)
+        source_f = WARC.open(filename)
 
-        for record in warc.records:
+        while True:
+            record, has_more = WARC.read_record(source_f)
+
             if args.gzip:
                 f = gzip.GzipFile(fileobj=file_obj, mode='wb')
             else:
@@ -108,17 +117,31 @@ def concat_command(args):
             for v in record.iter_bytes():
                 _logger.debug('Wrote %d bytes', len(v))
                 f.write(v)
+                bytes_written += len(v)
+
             if args.gzip:
                 f.close()
+
+            records_written += 1
+
+            if records_written % 1000 == 0:
+                _logger.info('Wrote %d records (%d bytes) so far',
+                    records_written, bytes_written)
+
+            if not has_more:
+                break
+
+        source_f.close()
 
 
 def split_command(args):
     for filename in args.file:
-        warc = WARC()
-        warc.load(filename)
-
+        source_f = WARC.open(filename)
         i = 0
-        for record in warc.records:
+
+        while True:
+            record, has_more = WARC.read_record(source_f)
+
             record_filename = '{}.{:08d}.warc'.format(
                 util.strip_warc_extension(os.path.basename(filename)), i)
 
@@ -134,6 +157,12 @@ def split_command(args):
 
             f.close()
             i += 1
+
+            if i % 1000 == 0:
+                _logger.info('Wrote %d records so far', i)
+
+            if not has_more:
+                break
 
 
 commands = {

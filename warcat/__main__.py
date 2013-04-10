@@ -2,11 +2,9 @@
 # Licensed under GPLv3. See COPYING.txt for details.
 from warcat import util
 from warcat.model import WARC
+from warcat.tool import ListTool, ConcatTool, SplitTool
 import argparse
-import gzip
-import isodate
 import logging
-import os.path
 import sys
 import warcat.version
 
@@ -25,12 +23,13 @@ def main():
         type=argparse.FileType('wb'), default=sys.stdout,
     )
     arg_parser.add_argument('--gzip', '-z', action='store_true',
-        help='When outputing a file, use gzip compression',
+        help='When outputting a file, use gzip compression',
     )
     arg_parser.add_argument('--force-read-gzip', action='store_true',
         help='Instead of guessing by filename, force reading archives as'
         ' gzip compressed')
-    arg_parser.add_argument('--verbose', action='count')
+    arg_parser.add_argument('--verbose', action='count',
+        help='Increase verbosity. Can be used more than once.')
 
     original_print_help = arg_parser.print_help
 
@@ -65,39 +64,28 @@ def help_command(args=None, file=sys.stderr):
         print('{}\n    {}'.format(command, label), file=file)
 
 
-# TODO: these commands are starting to look similar to each other
-# they can be generalized and move to a separate module such as 'warcat.tool'
+def get_file_buffer(file_obj):
+    if file_obj == sys.stdout:
+        return sys.stdout.buffer
+    else:
+        return file_obj
+
+
+def build_tool(class_, args):
+    return class_(args.file,
+        write_gzip=args.gzip,
+        force_read_gzip=args.force_read_gzip,
+        out_file=get_file_buffer(args.output),
+    )
 
 
 def list_command(args):
-    num_records = 0
-
-    for filename in args.file:
-        f = WARC.open(filename, force_gzip=args.force_read_gzip)
-
-        while True:
-            record, has_more = WARC.read_record(f)
-
-            print('Record:', record.record_id)
-            print('  Order:', num_records)
-            print('  File offset:', record.file_offset)
-            print('  Type:', record.warc_type)
-            print('  Date:', isodate.datetime_isoformat(record.date))
-            print('  Size:', record.content_length)
-
-            if not has_more:
-                break
-
-            num_records += 1
-
-        f.close()
+    tool = build_tool(ListTool, args)
+    tool.process()
 
 
 def pass_command(args):
-    out_file = args.output
-
-    if out_file == sys.stdout:
-        out_file = sys.stdout.buffer
+    out_file = get_file_buffer(args.output)
 
     for filename in args.file:
         warc = WARC()
@@ -108,76 +96,13 @@ def pass_command(args):
 
 
 def concat_command(args):
-    if args.output == sys.stdout:
-        file_obj = sys.stdout.buffer
-    else:
-        file_obj = args.output
-        file_obj.truncate()
-
-    bytes_written = 0
-    records_written = 0
-    for filename in args.file:
-        source_f = WARC.open(filename, force_gzip=args.force_read_gzip)
-
-        while True:
-            record, has_more = WARC.read_record(source_f)
-
-            if args.gzip:
-                f = gzip.GzipFile(fileobj=file_obj, mode='wb')
-            else:
-                f = file_obj
-            for v in record.iter_bytes():
-                _logger.debug('Wrote %d bytes', len(v))
-                f.write(v)
-                bytes_written += len(v)
-
-            if args.gzip:
-                f.close()
-
-            records_written += 1
-
-            if records_written % 1000 == 0:
-                _logger.info('Wrote %d records (%d bytes) so far',
-                    records_written, bytes_written)
-
-            if not has_more:
-                break
-
-        source_f.close()
+    tool = build_tool(ConcatTool, args)
+    tool.process()
 
 
 def split_command(args):
-    records_written = 0
-
-    for filename in args.file:
-        source_f = WARC.open(filename, force_gzip=args.force_read_gzip)
-        i = 0
-
-        while True:
-            record, has_more = WARC.read_record(source_f)
-
-            record_filename = '{}.{:08d}.warc'.format(
-                util.strip_warc_extension(os.path.basename(filename)), i)
-
-            if args.gzip:
-                record_filename += '.gz'
-                f = gzip.GzipFile(record_filename, mode='wb')
-            else:
-                f = open(record_filename, 'wb')
-
-            for v in record.iter_bytes():
-                _logger.debug('Wrote %d bytes', len(v))
-                f.write(v)
-
-            f.close()
-            i += 1
-            records_written += 1
-
-            if i % 1000 == 0:
-                _logger.info('Wrote %d records so far', records_written)
-
-            if not has_more:
-                break
+    tool = build_tool(SplitTool, args)
+    tool.process()
 
 
 commands = {

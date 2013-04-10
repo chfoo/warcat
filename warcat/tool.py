@@ -20,7 +20,6 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
         self.write_gzip = write_gzip
         self.current_filename = None
         self.read_record_ids = read_record_ids
-        print(read_record_ids)
 
         self.init()
 

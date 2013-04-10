@@ -16,7 +16,8 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
     '''Base class for iterating through records'''
 
     def __init__(self, filenames, out_file=sys.stdout.buffer, write_gzip=False,
-    force_read_gzip=None, read_record_ids=None, preserve_block=True):
+    force_read_gzip=None, read_record_ids=None, preserve_block=True,
+    out_dir=None):
         self.filenames = filenames
         self.out_file = out_file
         self.force_read_gzip = force_read_gzip
@@ -24,6 +25,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
         self.current_filename = None
         self.read_record_ids = read_record_ids
         self.preserve_block = preserve_block
+        self.out_dir = out_dir
 
         self.init()
 
@@ -112,6 +114,9 @@ class SplitTool(BaseIterateTool):
         record_filename = '{}.{:08d}.warc'.format(
             util.strip_warc_extension(os.path.basename(self.current_filename)),
             self.record_order)
+        record_filename = os.path.join(self.out_dir, record_filename)
+
+        os.makedirs(self.out_dir, exist_ok=True)
 
         if self.write_gzip:
             record_filename += '.gz'

@@ -6,6 +6,7 @@ import argparse
 import logging
 import sys
 import warcat.version
+import os
 
 _logger = logging.getLogger(__name__)
 
@@ -35,6 +36,10 @@ def main():
     arg_parser.add_argument('--preserve-block', action='store_true',
         help="Don't attempt to parse content blocks. Parsed content blocks"
         " may not match content-length and hash digests on serialization.")
+    arg_parser.add_argument('--output-dir', '-d',
+        default=os.getcwd(),
+        help='For output operations that make multiple files, use given'
+            ' directory instead of current working directory.')
 
     original_print_help = arg_parser.print_help
 
@@ -83,6 +88,7 @@ def build_tool(class_, args):
         out_file=get_file_buffer(args.output),
         read_record_ids=args.record,
         preserve_block=args.preserve_block,
+        out_dir=args.output_dir,
     )
 
 

@@ -141,8 +141,8 @@ To-do
 * Conformance checking
 * Smart archive join
 * Extract as files
-* Option to specify which record to extract
-* Generate index
+* Regex filtering of records
+* Generate index to disk (eg, for fast resume)
 * Grab files like wget and archive them
 * See TODO and FIXME markers in code
 * etc.

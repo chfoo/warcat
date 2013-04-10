@@ -1,12 +1,14 @@
 '''Archive process tools'''
-from warcat import util
-from warcat.model import WARC
+from warcat import model, util
 import abc
 import gzip
+import http.client
 import isodate
 import logging
 import os.path
 import sys
+import io
+import shutil
 
 
 _logger = logging.getLogger(__name__)
@@ -45,10 +47,10 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
             self.record_order = 0
             self.current_filename = filename
 
-            f = WARC.open(filename, force_gzip=self.force_read_gzip)
+            f = model.WARC.open(filename, force_gzip=self.force_read_gzip)
 
             while True:
-                record, has_more = WARC.read_record(f,
+                record, has_more = model.WARC.read_record(f,
                     preserve_block=self.preserve_block)
 
                 skip = False
@@ -132,3 +134,33 @@ class SplitTool(BaseIterateTool):
 
         if self.num_records % 1000 == 0:
             _logger.info('Wrote %d records so far', self.num_records)
+
+
+class ExtractTool(BaseIterateTool):
+    def action(self, record):
+        if record.warc_type != 'response':
+            return
+        if not isinstance(record.content_block, model.BlockWithPayload):
+            return
+        if not isinstance(record.content_block.fields, model.HTTPHeaders):
+            return
+        if not record.content_block.fields.status_code == http.client.OK:
+            return
+
+        url = record.header.fields['WARC-Target-URI']
+        binary_block = record.content_block.binary_block
+        file_obj = binary_block.get_file_object()
+        data = file_obj.read(binary_block.length)
+        response = util.parse_http_response(data)
+        path = os.path.join(self.out_dir, *util.split_url_to_filename(url))
+        dir_path = os.path.dirname(path)
+
+        _logger.debug('Extracting %s to %s', record.record_id, path)
+
+        os.makedirs(dir_path, exist_ok=True)
+
+        with open(path, 'wb') as f:
+            shutil.copyfileobj(response, f)
+
+        # TODO: set modified time to last modified
+        _logger.info('Extracted %s to %s', record.record_id, path)

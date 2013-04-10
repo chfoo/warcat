@@ -33,6 +33,8 @@ Supported commands
 
 concat
     Naively join archives into one
+extract
+    Extract files from archive
 help
     List commands available
 list
@@ -78,11 +80,11 @@ Example:
     b'software: Wget/1.13.4-2608 (linux-gnu)\r\nformat: WARC File Fo'
 
 
-.. important::
+.. note::
 
     The library is not entirely thread-safe yet.
-    
-    * Shared file objects in the file cache 
+
+    * Shared file objects in the file cache
 
 
 About

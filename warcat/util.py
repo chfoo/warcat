@@ -2,10 +2,15 @@
 # Copyright 2013 Christopher Foo <chris.foo@gmail.com>
 # Licensed under GPLv3. See COPYING.txt for details.
 import collections
+import hashlib
+import http.client
 import io
 import logging
+import os
+import string
 import tempfile
 import threading
+import urllib.parse
 
 
 _logger = logging.getLogger(__name__)
@@ -217,6 +222,7 @@ class FileCache(object):
 
 def copyfile_obj(source, dest, bufsize=4096, max_length=None):
     '''Like :func:`shutil.copyfileobj` but with limit on how much to copy'''
+
     bytes_read = 0
 
     while True:
@@ -234,6 +240,55 @@ def copyfile_obj(source, dest, bufsize=4096, max_length=None):
         bytes_read += len(data)
 
 
+class HTTPSocketShim(io.BytesIO):
+    def makefile(self, *args, **kwargs):
+        return self
+
+
+def parse_http_response(file_obj):
+    '''Parse and return :class:`http.client.HTTPResponse`'''
+
+    response = http.client.HTTPResponse(HTTPSocketShim(file_obj))
+    response.begin()
+
+    return response
+
+
+def split_url_to_filename(s):
+    '''Attempt to split a URL to a filename on disk'''
+
+    url_info = urllib.parse.urlsplit(s)
+
+    l = [sanitize_str(url_info.netloc)]
+
+    for part in url_info.path.lstrip('/').split('/'):
+        part = sanitize_str(part)
+
+        if part:
+            l.append(part)
+        else:
+            hasher = hashlib.sha1(''.join(l).encode())
+            l.append('_index_{}'.format(hasher.hexdigest()[:6]))
+
+    if url_info.query:
+        l[-1] += '_' + sanitize_str(url_info.query)
+
+    if frozenset([os.curdir, os.pardir, '.', '..']) & frozenset(l):
+        raise ValueError('Path contains directory traversal filenames')
+
+    return l
+
+
+SANITIZE_BLACKLIST = frozenset(
+    r'/\:*?"<>|' + ''.join([chr(i) for i in range(0, 32)]) + '\x7f'
+)
+
+
+def sanitize_str(s):
+    '''Replaces unsavory chracters from string with an underscore'''
+
+    return ''.join([c if c not in SANITIZE_BLACKLIST else '_' for c in s])
+
+
 file_cache = FileCache()
 '''The :class:`FileCache` instance'''
-

@@ -1,12 +1,12 @@
 # Copyright 2013 Christopher Foo <chris.foo@gmail.com>
 # Licensed under GPLv3. See COPYING.txt for details.
 from warcat.model import WARC
-from warcat.tool import ListTool, ConcatTool, SplitTool
+from warcat.tool import ListTool, ConcatTool, SplitTool, ExtractTool
 import argparse
 import logging
+import os
 import sys
 import warcat.version
-import os
 
 _logger = logging.getLogger(__name__)
 
@@ -118,12 +118,18 @@ def split_command(args):
     tool.process()
 
 
+def extract_command(args):
+    tool = build_tool(ExtractTool, args)
+    tool.process()
+
+
 commands = {
     'help': ('List commands available', help_command),
     'list': ('List contents of archive', list_command),
     'pass': ('Load archive and write it back out', pass_command),
     'concat': ('Naively join archives into one', concat_command),
     'split': ('Split archives into individual records', split_command),
+    'extract': ('Extract files from archive', extract_command),
 }
 
 

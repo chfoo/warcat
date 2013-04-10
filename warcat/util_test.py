@@ -42,3 +42,17 @@ class TestUtil(unittest.TestCase):
             f = io.BytesIO(data)
 
             self.assertEqual(i, util.find_file_pattern(f, b'\r\n\r\n'))
+
+    def test_split_url_to_filename(self):
+        self.assertEqual(['example.com', 'index.php_article=Main_Page'],
+            util.split_url_to_filename(
+                'http://example.com/index.php?article=Main_Page')
+        )
+
+        def f1():
+            util.split_url_to_filename('http://example.com/../system')
+        self.assertRaises(ValueError, f1)
+
+        def f2():
+            util.split_url_to_filename('http://example.com/./system')
+        self.assertRaises(ValueError, f2)

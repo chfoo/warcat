@@ -42,6 +42,8 @@ def main():
             ' directory instead of current working directory.')
     arg_parser.add_argument('--progress', action='store_true',
         help='Show progress or activity')
+    arg_parser.add_argument('--keep-going', action='store_true',
+        help='Continue processing records despite errors')
 
     original_print_help = arg_parser.print_help
 
@@ -92,6 +94,7 @@ def build_tool(class_, args):
         preserve_block=args.preserve_block,
         out_dir=args.output_dir,
         print_progress=args.progress,
+        keep_going=args.keep_going,
     )
 
 

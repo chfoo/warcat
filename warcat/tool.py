@@ -52,7 +52,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
 
     def __init__(self, filenames, out_file=sys.stdout.buffer, write_gzip=False,
     force_read_gzip=None, read_record_ids=None, preserve_block=True,
-    out_dir=None, print_progress=False):
+    out_dir=None, print_progress=False, keep_going=False):
         self.filenames = filenames
         self.out_file = out_file
         self.force_read_gzip = force_read_gzip
@@ -62,6 +62,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
         self.preserve_block = preserve_block
         self.out_dir = out_dir
         self.print_progress = print_progress
+        self.keep_going = keep_going
 
     def preprocess(self):
         pass
@@ -95,7 +96,14 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
                     _logger.debug('Skipping %s due to filter',
                         record.record_id)
                 else:
-                    self.action(record)
+                    try:
+                        self.action(record)
+                    except Exception as e:
+                        if self.keep_going:
+                            _logger.exception('Error on record %s',
+                                record.record_id)
+                        else:
+                            raise e
 
                 if not has_more:
                     if self.print_progress:

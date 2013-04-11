@@ -64,7 +64,7 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
 
     .. note::
 
-        Either :attribute:`filename` or :attribute:`file_obj` must be set.
+        Either :attr:`filename` or :attr:`file_obj` must be set.
     '''
 
     def __init__(self):

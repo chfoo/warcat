@@ -1,3 +1,6 @@
+'''Verification helpers'''
+# Copyright 2013 Christopher Foo <chris.foo@gmail.com>
+# Licensed under GPLv3. See COPYING.txt for details.
 import hashlib
 import base64
 from warcat import util, model

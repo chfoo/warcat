@@ -94,29 +94,36 @@ class DiskBufferedReader(io.BufferedIOBase):
         self._block_file = None
         self._spool_size = spool_size
         self._lock = threading.RLock()
+        self._cache = FileCache()
 
         self._set_block(0)
 
     def _set_block(self, index):
-        # TODO: perhaps we can cache the last couple of blocks
         if index == self._block_index:
             return
 
         with self._lock:
             self._block_index = index
 
-            _logger.debug('Creating buffer block file. index=%d',
-                self._block_index)
+            self._block_file = self._cache.get(self._block_index)
 
-            self._block_file = tempfile.SpooledTemporaryFile(
-                max_size=self._spool_size)
+            if self._block_file:
+                _logger.debug('Buffer block file cache hit. index=%d',
+                    self._block_index)
+            else:
+                _logger.debug('Creating buffer block file. index=%d',
+                    self._block_index)
 
-            self._raw.seek(self._block_index * self._disk_buffer_size)
-            copyfile_obj(self.raw, self._block_file,
-                max_length=self._disk_buffer_size)
+                self._block_file = tempfile.SpooledTemporaryFile(
+                    max_size=self._spool_size)
 
-            _logger.debug('Buffer block file created. length=%d',
-                self._block_file.tell())
+                self._raw.seek(self._block_index * self._disk_buffer_size)
+                copyfile_obj(self.raw, self._block_file,
+                    max_length=self._disk_buffer_size)
+                self._cache.put(self._block_index, self._block_file)
+
+                _logger.debug('Buffer block file created. length=%d',
+                    self._block_file.tell())
 
             self._block_file.seek(0)
 

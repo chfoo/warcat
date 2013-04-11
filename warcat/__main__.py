@@ -1,7 +1,7 @@
 # Copyright 2013 Christopher Foo <chris.foo@gmail.com>
 # Licensed under GPLv3. See COPYING.txt for details.
 from warcat.model import WARC
-from warcat.tool import ListTool, ConcatTool, SplitTool, ExtractTool
+from warcat.tool import ListTool, ConcatTool, SplitTool, ExtractTool, VerifyTool
 import argparse
 import logging
 import os
@@ -126,6 +126,14 @@ def extract_command(args):
     tool.process()
 
 
+def verify_command(args):
+    tool = build_tool(VerifyTool, args)
+    tool.process()
+
+    if tool.problems:
+        sys.exit('Validation failed. Problems: {}.'.format(tool.problems))
+
+
 commands = {
     'help': ('List commands available', help_command),
     'list': ('List contents of archive', list_command),
@@ -133,6 +141,7 @@ commands = {
     'concat': ('Naively join archives into one', concat_command),
     'split': ('Split archives into individual records', split_command),
     'extract': ('Extract files from archive', extract_command),
+    'verify': ('Verify digest and validate conformance', verify_command),
 }
 
 

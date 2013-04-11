@@ -22,10 +22,11 @@ Install (optional)::
     python3 setup.py install
 
 
-Run::
+Example Run::
 
     python3 -m warcat --help
     python3 -m warcat list example/at.warc.gz
+    python3 -m warcat verify megawarc.warc.gz --progress
     python3 -m warcat extract megawarc.warc.gz --output-dir /tmp/megawarc/ --progress
 
 
@@ -44,6 +45,8 @@ pass
     Load archive and write it back out
 split
     Split archives into individual records
+verify
+    Verify digest and validate conformance
 
 
 Library
@@ -98,6 +101,13 @@ Warcat is designed to handle large, gzip-ed files by partially extracting them a
 Warcat is provided without warranty and cannot guarantee the safety of your files. Remember to make backups and test them!
 
 
+* Homepage: https://github.com/chfoo/warcat
+* Questions?: https://answers.launchpad.net/warcat
+* Bugs?: https://github.com/chfoo/warcat/issues
+* PyPI: https://pypi.python.org/pypi/Warcat/
+* Chat: irc://irc.efnet.org/archiveteam-bs (I'll be on #archiveteam-bs on EFnet) 
+
+
 Specification
 +++++++++++++
 
@@ -138,8 +148,6 @@ Always remember to test. Continue testing::
 To-do
 +++++
 
-* Verify hash digests
-* Conformance checking
 * Smart archive join
 * Regex filtering of records
 * Generate index to disk (eg, for fast resume)

@@ -134,7 +134,7 @@ class Fields(StrSerializable, BytesSerializable):
         self._list = [] if field_list is None else field_list
 
     def __contains__(self, name):
-        return self[name] is not None
+        return self.get(name) is not None
 
     def __iter__(self):
         return self._list
@@ -146,6 +146,8 @@ class Fields(StrSerializable, BytesSerializable):
         for k, v in self._list:
             if k.lower() == name.lower():
                 return v
+
+        raise KeyError('{} not in fields'.format(name))
 
     def __setitem__(self, name, value):
         try:

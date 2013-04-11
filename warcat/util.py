@@ -7,7 +7,6 @@ import http.client
 import io
 import logging
 import os
-import string
 import tempfile
 import threading
 import urllib.parse
@@ -221,10 +220,12 @@ class FileCache(object):
             self._files.append((filename, file_obj))
 
 
-def copyfile_obj(source, dest, bufsize=4096, max_length=None):
+def copyfile_obj(source, dest, bufsize=4096, max_length=None,
+write_attr_name='write'):
     '''Like :func:`shutil.copyfileobj` but with limit on how much to copy'''
 
     bytes_read = 0
+    write_func = getattr(dest, write_attr_name)
 
     while True:
         if max_length != None:
@@ -237,7 +238,7 @@ def copyfile_obj(source, dest, bufsize=4096, max_length=None):
         if not data:
             break
 
-        dest.write(data)
+        write_func(data)
         bytes_read += len(data)
 
 

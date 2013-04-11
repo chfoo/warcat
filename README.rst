@@ -11,14 +11,14 @@ Requirements:
 
 * Python 3
 
+Install stable version::
 
-Install dependencies::
+    pip-3 install warcat
 
+Or install latest version::
+
+    git clone git://github.com/chfoo/warcat.git
     pip-3 install -r requirements.txt
-
-
-Install (optional)::
-
     python3 setup.py install
 
 

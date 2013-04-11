@@ -49,7 +49,7 @@ copyright = '2013, Christopher Foo'
 # built documents.
 #
 
-sys.path.append('../')
+sys.path.insert(0, '../')
 import warcat.version
 # The short X.Y version.
 version = warcat.version.short_version

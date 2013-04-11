@@ -1,4 +1,5 @@
 from warcat import util
+import datetime
 import io
 import os.path
 import unittest
@@ -66,3 +67,7 @@ class TestUtil(unittest.TestCase):
             util.append_index_filename(os.path.join('hello', 'index.php'))
         )
 
+    def test_parse_http_date(self):
+        self.assertEqual(datetime.datetime(1995, 11, 20, 19, 12, 8,
+            tzinfo=datetime.timezone(datetime.timedelta(-1, 68400))),
+            util.parse_http_date('Mon, 20 Nov 1995 19:12:08 -0500'))

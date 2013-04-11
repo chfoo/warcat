@@ -2,6 +2,8 @@
 # Copyright 2013 Christopher Foo <chris.foo@gmail.com>
 # Licensed under GPLv3. See COPYING.txt for details.
 import collections
+import datetime
+import email.utils
 import hashlib
 import http.client
 import io
@@ -325,6 +327,19 @@ def rename_filename_dirs(dest_filename):
             _logger.debug('Rename %s -> %s', path, new_path)
             os.rename(path, new_path)
             break
+
+
+def parse_http_date(s):
+    t = email.utils.parsedate_tz(s)
+
+    if not t:
+        raise ValueError('Unable to parse date')
+
+    tzinfo = datetime.timezone(datetime.timedelta(seconds=t[9]))
+    d = datetime.datetime(*t[:6], tzinfo=tzinfo)
+
+    return d
+
 
 
 file_cache = FileCache()

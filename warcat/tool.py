@@ -6,11 +6,12 @@ import abc
 import gzip
 import http.client
 import isodate
+import itertools
 import logging
 import os.path
-import sys
 import shutil
-import itertools
+import sys
+import time
 
 
 _logger = logging.getLogger(__name__)
@@ -203,6 +204,8 @@ class ExtractTool(BaseIterateTool):
         if os.path.isdir(path):
             path = util.append_index_filename(path)
 
+        # FIXME: long paths such as urls with a long query string may fail
+
         _logger.debug('Extracting %s to %s', record.record_id, path)
         util.rename_filename_dirs(path)
         os.makedirs(dir_path, exist_ok=True)
@@ -210,7 +213,18 @@ class ExtractTool(BaseIterateTool):
         with open(path, 'wb') as f:
             shutil.copyfileobj(response, f)
 
-        # TODO: set modified time to last modified
+        last_modified_str = response.getheader('Last-Modified')
+
+        if last_modified_str:
+            try:
+                last_modified = util.parse_http_date(last_modified_str)
+            except ValueError:
+                pass
+            else:
+                timestamp = time.mktime(last_modified.utctimetuple())
+                os.utime(path, (time.time(), timestamp))
+                _logger.debug('Apply mtime %d to %s', timestamp, path)
+
         _logger.info('Extracted %s to %s', record.record_id, path)
 
 

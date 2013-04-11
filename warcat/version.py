@@ -1,7 +1,7 @@
 '''Version info'''
 
 short_version = '1.8'
-__version__ = short_version + ''
+__version__ = short_version + '.1'
 
 try:
     import distutils.version

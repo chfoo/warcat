@@ -1,4 +1,6 @@
 '''Archive process tools'''
+# Copyright 2013 Christopher Foo <chris.foo@gmail.com>
+# Licensed under GPLv3. See COPYING.txt for details.
 from warcat import model, util
 import abc
 import gzip

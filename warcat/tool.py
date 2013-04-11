@@ -71,10 +71,10 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
         pass
 
     def process(self):
-        self.preprocess()
         self.num_records = 0
         throbber_iter = itertools.cycle(THROBBER)
         progress_msg = ''
+        self.preprocess()
 
         for filename in self.filenames:
             self.record_order = 0
@@ -116,14 +116,15 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
                 self.num_records += 1
 
                 if not has_more:
-                    if self.print_progress:
-                        sys.stderr.write('\nDone. {} records processed.\n'\
-                            .format(self.num_records))
                     break
 
             f.close()
 
         self.postprocess()
+
+        if self.print_progress:
+            sys.stderr.write('\nDone. {} records processed.\n'.format(
+                self.num_records))
 
     @abc.abstractmethod
     def action(self, record):

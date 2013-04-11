@@ -44,7 +44,7 @@ def verify_block_digest(record):
     else:
         content_block = record.content_block
 
-    util.copyfile_obj(content_block.get_file_object(), hash_obj,
+    util.copyfile_obj(content_block.get_file(), hash_obj,
         max_length=content_block.length, write_attr_name='update')
 
     return given_digest == hash_obj.digest()
@@ -58,7 +58,7 @@ def verify_payload_digest(record):
     hash_obj = ALGORITHM_MAP[alg_name]()
     content_block = record.content_block.payload
 
-    util.copyfile_obj(content_block.get_file_object(), hash_obj,
+    util.copyfile_obj(content_block.get_file(), hash_obj,
         max_length=content_block.length, write_attr_name='update')
 
     return given_digest == hash_obj.digest()

@@ -86,9 +86,7 @@ Example:
 
 .. note::
 
-    The library is not entirely thread-safe yet.
-
-    * Shared file objects in the file cache
+    The library may not be entirely thread-safe yet.
 
 
 About

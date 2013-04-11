@@ -8,6 +8,7 @@ import gzip
 import isodate
 import logging
 import re
+import tempfile
 
 NEWLINE = '\r\n'
 NEWLINE_BYTES = b'\r\n'
@@ -43,8 +44,27 @@ class StrSerializable(metaclass=abc.ABCMeta):
 class BinaryFileRef(metaclass=abc.ABCMeta):
     '''Reference to a file containing the content block data.
 
-    This class is not thread-safe as file objects may be cached and
-    reused repeatedly.
+    .. attribute:: file_offset
+
+        When reading, the file is seeked to `file_offset`.
+
+    .. attribute:: length
+
+        The length of the data
+
+    .. attribute:: filename
+
+        The filename of the referenced data. It must be a valid file.
+
+    .. attribute:: file_obj
+
+        The file object to be read from. It is important that this file
+        object is not shared or race conditions will occur. File objects
+        are not closed automatically.
+
+    .. note::
+
+        Either :attribute:`filename` or :attribute:`file_obj` must be set.
     '''
 
     def __init__(self):
@@ -53,20 +73,13 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
         self.filename = None
         self.file_obj = None
 
-    def set_source_file(self, file, offset=0, length=None):
+    def set_file(self, file, offset=0, length=None):
         '''Set the reference to the file or filename with the data.
 
-        If a file object with a ``name`` attribute is provided,
-        it will use that instead to prevent race conditions with seeking.
-        If a file-like object is provided, it will use it plainly.
-        Otherwise, it is assumed that it is a filename.
-
-        File objects are not closed automatically.
+        This is a convenience function to setting the attributes individually.
         '''
 
-        if hasattr(file, 'name'):
-            self.filename = file.name
-        elif hasattr(file, 'read'):
+        if hasattr(file, 'read'):
             self.file_obj = file
         else:
             self.filename = file
@@ -74,33 +87,36 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
         self.file_offset = offset
         self.length = length
 
-    def iter_bytes_over_source_file(self, buffer_size=4096):
+    def iter_file(self, buffer_size=4096):
         '''Return an iterable of bytes of the source data'''
 
-        file_obj = self.get_file_object()
-        bytes_read = 0
+        with self.get_file(safe=True) as file_obj:
+            bytes_read = 0
 
-        while True:
-            if self.length is not None:
-                length = min(buffer_size, self.length - bytes_read)
-            else:
-                length = buffer_size
+            while True:
+                if self.length is not None:
+                    length = min(buffer_size, self.length - bytes_read)
+                else:
+                    length = buffer_size
 
-            data = file_obj.read(length)
-            bytes_read += len(data)
+                data = file_obj.read(length)
+                bytes_read += len(data)
 
-            if not data or not length:
-                break
+                if not data or not length:
+                    break
 
-            yield data
+                yield data
 
-    def get_file_object(self):
+    def get_file(self, safe=True, spool_size=10485760):
         '''Return a file object with the data.
 
-        .. note::
+        :param safe:
+            If `True`, return a new file object that is a copy of the data.
+            You will be responsible for closing the file.
 
-            The file object returned may be part of a larger file.
-            Do not seek or read beyond the offset and length!
+            Otherwise, it will be the original file object that is seeked
+            to the correct offset. Be sure to not read beyond its length and
+            seek back to the original position if necessary.
         '''
 
         if self.filename:
@@ -117,8 +133,21 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
         else:
             file_obj = self.file_obj
 
+        original_position = file_obj.tell()
+
         if self.file_offset:
             file_obj.seek(self.file_offset)
+
+        if safe:
+            _logger.debug('Creating safe file of %s',
+                self.filename or self.file_obj)
+            temp_file_obj = tempfile.SpooledTemporaryFile(max_size=spool_size)
+
+            util.copyfile_obj(file_obj, temp_file_obj, max_length=self.length)
+            temp_file_obj.seek(0)
+            file_obj.seek(original_position)
+
+            return temp_file_obj
 
         return file_obj
 
@@ -457,7 +486,7 @@ class BinaryBlock(ContentBlock, BinaryFileRef):
     '''A content block that is octet data'''
 
     def iter_bytes(self):
-        for v in self.iter_bytes_over_source_file():
+        for v in self.iter_file():
             yield v
 
     @classmethod
@@ -465,7 +494,7 @@ class BinaryBlock(ContentBlock, BinaryFileRef):
         '''Return a :class:`BinaryBlock` using given file object'''
 
         binary_block = BinaryBlock()
-        binary_block.set_source_file(file_obj, offset=file_obj.tell(),
+        binary_block.set_file(file_obj.name, offset=file_obj.tell(),
             length=length)
 
         file_obj.seek(file_obj.tell() + length)
@@ -508,7 +537,7 @@ class BlockWithPayload(ContentBlock):
         '''
 
         binary_block = BinaryBlock()
-        binary_block.set_source_file(file_obj, file_obj.tell(), length)
+        binary_block.set_file(file_obj.name, file_obj.tell(), length)
 
         try:
             field_length = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
@@ -521,7 +550,7 @@ class BlockWithPayload(ContentBlock):
         payload_length = length - field_length
         payload = Payload()
 
-        payload.set_source_file(file_obj, offset=file_obj.tell(),
+        payload.set_file(file_obj.name, offset=file_obj.tell(),
             length=payload_length)
         _logger.debug('Field length=%d', field_length)
         _logger.debug('Payload length=%d', payload_length)
@@ -557,7 +586,7 @@ class Payload(BytesSerializable, BinaryFileRef):
         BinaryFileRef.__init__(self)
 
     def iter_bytes(self):
-        for v in self.iter_bytes_over_source_file():
+        for v in self.iter_file():
             yield v
 
 

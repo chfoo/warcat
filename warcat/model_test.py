@@ -53,7 +53,7 @@ class TestModel(unittest.TestCase):
         record.record_id = 'a'
         record.content_block = model.BinaryBlock()
         content_data = b'hello world!'
-        record.content_block.set_source_file(io.BytesIO(content_data))
+        record.content_block.set_file(io.BytesIO(content_data))
         record.content_length = len(content_data)
         warc.records.append(record)
 
@@ -63,7 +63,7 @@ class TestModel(unittest.TestCase):
         record.content_block = model.BlockWithPayload()
         record.content_block.fields['example'] = 'kitten'
         content_data = b'hello world!'
-        record.content_block.payload.set_source_file(io.BytesIO(content_data),
+        record.content_block.payload.set_file(io.BytesIO(content_data),
             length=len(content_data))
         record.content_length = record.content_block.length
         warc.records.append(record)

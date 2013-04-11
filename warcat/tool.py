@@ -202,7 +202,7 @@ class ExtractTool(BaseIterateTool):
 
         url = record.header.fields['WARC-Target-URI']
         binary_block = record.content_block.binary_block
-        file_obj = binary_block.get_file_object()
+        file_obj = binary_block.get_file()
         data = file_obj.read(binary_block.length)
         response = util.parse_http_response(data)
         path_list = util.split_url_to_filename(url)

@@ -140,7 +140,6 @@ To-do
 * Verify hash digests
 * Conformance checking
 * Smart archive join
-* Extract as files
 * Regex filtering of records
 * Generate index to disk (eg, for fast resume)
 * Grab files like wget and archive them

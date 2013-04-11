@@ -1,6 +1,7 @@
-import io
-import unittest
 from warcat import util
+import io
+import os.path
+import unittest
 
 
 class TestUtil(unittest.TestCase):
@@ -56,3 +57,12 @@ class TestUtil(unittest.TestCase):
         def f2():
             util.split_url_to_filename('http://example.com/./system')
         self.assertRaises(ValueError, f2)
+
+    def test_append_index_filename(self):
+        self.assertEqual('_index_da39a3', util.append_index_filename(''))
+        self.assertEqual('index.php_index_bb6499',
+            util.append_index_filename('index.php'))
+        self.assertEqual(os.path.join('hello', 'index.php_index_bb6499'),
+            util.append_index_filename(os.path.join('hello', 'index.php'))
+        )
+

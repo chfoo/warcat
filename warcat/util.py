@@ -97,6 +97,7 @@ class DiskBufferedReader(io.BufferedIOBase):
         self._set_block(0)
 
     def _set_block(self, index):
+        # TODO: perhaps we can cache the last couple of blocks
         if index == self._block_index:
             return
 
@@ -264,11 +265,10 @@ def split_url_to_filename(s):
     for part in url_info.path.lstrip('/').split('/'):
         part = sanitize_str(part)
 
-        if part:
-            l.append(part)
-        else:
-            hasher = hashlib.sha1(''.join(l).encode())
-            l.append('_index_{}'.format(hasher.hexdigest()[:6]))
+        l.append(part)
+
+        if not part:
+            l[-1] = append_index_filename(part)
 
     if url_info.query:
         l[-1] += '_' + sanitize_str(url_info.query)
@@ -288,6 +288,42 @@ def sanitize_str(s):
     '''Replaces unsavory chracters from string with an underscore'''
 
     return ''.join([c if c not in SANITIZE_BLACKLIST else '_' for c in s])
+
+
+def append_index_filename(path):
+    '''Adds ``_index_xxxxxx`` to the path.
+
+    It uses the basename aka filename of the path to generate the hex hash
+    digest suffix.
+    '''
+
+    hasher = hashlib.sha1(os.path.basename(path).encode())
+    path += '_index_{}'.format(hasher.hexdigest()[:6])
+
+    return path
+
+
+def rename_filename_dirs(dest_filename):
+    '''Renames files if they conflict with a directory in given path.
+
+    If a file has the same name as the directory, the file is renamed
+    using :func:`append_index_filename`.
+    :
+    '''
+
+    path = dest_filename
+    while True:
+        path, filename = os.path.split(path)
+
+        if not filename:
+            break
+
+        if os.path.isfile(path):
+            new_path = append_index_filename(path)
+
+            _logger.debug('Rename %s -> %s', path, new_path)
+            os.rename(path, new_path)
+            break
 
 
 file_cache = FileCache()

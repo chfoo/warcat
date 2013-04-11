@@ -152,11 +152,15 @@ class ExtractTool(BaseIterateTool):
         file_obj = binary_block.get_file_object()
         data = file_obj.read(binary_block.length)
         response = util.parse_http_response(data)
-        path = os.path.join(self.out_dir, *util.split_url_to_filename(url))
+        path_list = util.split_url_to_filename(url)
+        path = os.path.join(self.out_dir, *path_list)
         dir_path = os.path.dirname(path)
 
-        _logger.debug('Extracting %s to %s', record.record_id, path)
+        if os.path.isdir(path):
+            path = util.append_index_filename(path)
 
+        _logger.debug('Extracting %s to %s', record.record_id, path)
+        util.rename_filename_dirs(path)
         os.makedirs(dir_path, exist_ok=True)
 
         with open(path, 'wb') as f:

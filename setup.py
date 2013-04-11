@@ -8,6 +8,15 @@ setup(name='Warcat',
     author='Christopher Foo',
     author_email='chris.foo@gmail.com',
     url='https://github.com/chfoo/warcat',
-    packages=['warcat'],
-    classifiers=['Programming Language :: Python :: 3',]
+    packages=[
+        'warcat'
+    ],
+    install_requires=[
+        'isodate',
+    ],
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+        'Topic :: System :: Archiving',
+    ],
 )

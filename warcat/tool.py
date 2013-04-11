@@ -105,13 +105,6 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
                         else:
                             raise e
 
-                if not has_more:
-                    if self.print_progress:
-                        sys.stderr.write('\nDone. {} records processed.\n'\
-                            .format(self.num_records))
-
-                    break
-
                 if self.print_progress and self.num_records % 100 == 0:
                     s = next(throbber_iter)
                     sys.stderr.write('\b' * len(progress_msg))
@@ -121,6 +114,12 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
 
                 self.record_order += 1
                 self.num_records += 1
+
+                if not has_more:
+                    if self.print_progress:
+                        sys.stderr.write('\nDone. {} records processed.\n'\
+                            .format(self.num_records))
+                    break
 
             f.close()
 

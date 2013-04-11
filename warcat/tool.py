@@ -85,7 +85,8 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
 
                 if not has_more:
                     if self.print_progress:
-                        sys.stderr.write('\n')
+                        sys.stderr.write('\nDone. {} records processed.\n'\
+                            .format(self.num_records))
 
                     break
 

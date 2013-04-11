@@ -7,11 +7,24 @@ import isodate
 import logging
 import os.path
 import sys
-import io
 import shutil
+import itertools
 
 
 _logger = logging.getLogger(__name__)
+
+
+THROBBER = [
+    '(=   |',
+    '|=   |',
+    '| =  |',
+    '|  = |',
+    '|   =)',
+    '|   =|',
+    '|  = |',
+    '| =  |',
+]
+# lol; so bouncy.
 
 
 class BaseIterateTool(metaclass=abc.ABCMeta):
@@ -19,7 +32,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
 
     def __init__(self, filenames, out_file=sys.stdout.buffer, write_gzip=False,
     force_read_gzip=None, read_record_ids=None, preserve_block=True,
-    out_dir=None):
+    out_dir=None, print_progress=False):
         self.filenames = filenames
         self.out_file = out_file
         self.force_read_gzip = force_read_gzip
@@ -28,6 +41,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
         self.read_record_ids = read_record_ids
         self.preserve_block = preserve_block
         self.out_dir = out_dir
+        self.print_progress = print_progress
 
         self.init()
 
@@ -42,6 +56,8 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
 
     def process(self):
         self.num_records = 0
+        throbber_iter = itertools.cycle(THROBBER)
+        progress_msg = ''
 
         for filename in self.filenames:
             self.record_order = 0
@@ -66,7 +82,17 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
                     self.action(record)
 
                 if not has_more:
+                    if self.print_progress:
+                        sys.stderr.write('\n')
+
                     break
+
+                if self.print_progress and self.num_records % 100 == 0:
+                    s = next(throbber_iter)
+                    sys.stderr.write('\b' * len(progress_msg))
+                    progress_msg = '{} {} '.format(self.num_records, s)
+                    sys.stderr.write(progress_msg)
+                    sys.stderr.flush()
 
                 self.record_order += 1
                 self.num_records += 1

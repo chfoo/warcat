@@ -40,6 +40,8 @@ def main():
         default=os.getcwd(),
         help='For output operations that make multiple files, use given'
             ' directory instead of current working directory.')
+    arg_parser.add_argument('--progress', action='store_true',
+        help='Show progress or activity')
 
     original_print_help = arg_parser.print_help
 
@@ -89,6 +91,7 @@ def build_tool(class_, args):
         read_record_ids=args.record,
         preserve_block=args.preserve_block,
         out_dir=args.output_dir,
+        print_progress=args.progress,
     )
 
 

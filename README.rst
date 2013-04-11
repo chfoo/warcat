@@ -23,9 +23,10 @@ Install (optional)::
 
 
 Run::
-    
+
     python3 -m warcat --help
     python3 -m warcat list example/at.warc.gz
+    python3 -m warcat extract megawarc.warc.gz --output-dir /tmp/megawarc/ --progress
 
 
 Supported commands

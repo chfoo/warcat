@@ -196,7 +196,11 @@ class DiskBufferedReader(io.BufferedIOBase):
 
 
 class FileCache(object):
-    '''A cache containing references to file objects'''
+    '''A cache containing references to file objects.
+
+    File objects are closed when expired. Class is thread safe and will
+    only return file objects belonging to its own thread.
+    '''
 
     def __init__(self, size=4):
         self._size = size
@@ -204,22 +208,28 @@ class FileCache(object):
         self._lock = threading.Lock()
 
     def get(self, filename):
+        thread_id = threading.current_thread()
+
         with self._lock:
-            for cache_filename, file_obj in self._files:
-                if filename == cache_filename:
-                    return file_obj
+            return self._get(filename, thread_id)
+
+    def _get(self, filename, thread_id):
+        for cache_filename, cache_thread_id, file_obj in self._files:
+            if filename == cache_filename and thread_id == cache_thread_id:
+                return file_obj
 
     def put(self, filename, file_obj):
+        thread_id = threading.current_thread()
+
         with self._lock:
-            for cache_filename, file_obj in self._files:
-                if filename == cache_filename:
-                    return
+            if self._get(filename, thread_id):
+                return
 
             if len(self._files) > self._size:
-                old_file_obj = self._files.popleft()[1]
+                old_file_obj = self._files.popleft()[2]
                 old_file_obj.close()
 
-            self._files.append((filename, file_obj))
+            self._files.append((filename, thread_id, file_obj))
 
 
 def copyfile_obj(source, dest, bufsize=4096, max_length=None,

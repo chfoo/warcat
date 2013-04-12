@@ -3,7 +3,7 @@
 short_version = '2.1'
 '''Short version in the form of N.N'''
 
-__version__ = short_version + 'b1'
+__version__ = short_version + ''
 '''Version in the form of N.N[.N]+[{a|b|c|rc}N[.N]+][.postN][.devN]'''
 
 

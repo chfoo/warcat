@@ -223,6 +223,7 @@ class HTTPHeader(Fields):
 
 HTTPHeaders = HTTPHeader
 '''.. deprecated:: 2.1.1
+
     Name uses wrong inflection. Use :class:`HTTPHeader` instead.
 '''
 

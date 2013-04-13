@@ -4,5 +4,10 @@
 
 
 NEWLINE = '\r\n'
+'''String CR LF'''
+
 NEWLINE_BYTES = b'\r\n'
+'''Bytes CR LF'''
+
 FIELD_DELIM_BYTES = NEWLINE_BYTES * 2
+'''Bytes CR LF CR LF'''

@@ -328,7 +328,6 @@ def rename_filename_dirs(dest_filename):
 
     If a file has the same name as the directory, the file is renamed
     using :func:`append_index_filename`.
-    :
     '''
 
     path = dest_filename

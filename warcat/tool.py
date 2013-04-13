@@ -50,9 +50,15 @@ class VerifyProblem(ValueError):
 class BaseIterateTool(metaclass=abc.ABCMeta):
     '''Base class for iterating through records'''
 
-    def __init__(self, filenames, out_file=sys.stdout.buffer, write_gzip=False,
+    def __init__(self, filenames, out_file=None, write_gzip=False,
     force_read_gzip=None, read_record_ids=None, preserve_block=True,
     out_dir=None, print_progress=False, keep_going=False):
+        if not out_file:
+            try:
+                out_file = sys.stdout.buffer
+            except AttributeError:
+                out_file = sys.stdout
+
         self.filenames = filenames
         self.out_file = out_file
         self.force_read_gzip = force_read_gzip
@@ -171,7 +177,8 @@ class SplitTool(BaseIterateTool):
             self.record_order)
         record_filename = os.path.join(self.out_dir, record_filename)
 
-        os.makedirs(self.out_dir, exist_ok=True)
+        if not os.path.exists(self.out_dir):
+            os.makedirs(self.out_dir, exist_ok=True)
 
         if self.write_gzip:
             record_filename += '.gz'

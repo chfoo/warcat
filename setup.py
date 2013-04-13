@@ -9,7 +9,8 @@ setup(name='Warcat',
     author_email='chris.foo@gmail.com',
     url='https://github.com/chfoo/warcat',
     packages=[
-        'warcat'
+        'warcat',
+        'warcat.model',
     ],
     install_requires=[
         'isodate',

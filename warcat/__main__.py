@@ -12,8 +12,10 @@ _logger = logging.getLogger(__name__)
 
 
 def main():
-    arg_parser = argparse.ArgumentParser(version=warcat.version.__version__,
+    arg_parser = argparse.ArgumentParser(
         description='Tool for handling Web ARChive (WARC) files.')
+    arg_parser.add_argument('--version', action='version',
+        version=warcat.version.__version__)
     arg_parser.add_argument('command',
         help='A command to run. Use "help" for a list.')
     arg_parser.add_argument('file', help='Filename of file to be read.',

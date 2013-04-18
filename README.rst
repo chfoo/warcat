@@ -134,6 +134,12 @@ Warcat is inspired by
 Development
 ===========
 
+.. image:: https://travis-ci.org/chfoo/warcat.png
+
+    :target: https://travis-ci.org/chfoo/warcat
+    :alt: Travis build status
+
+
 Testing
 +++++++
 

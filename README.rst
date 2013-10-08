@@ -100,6 +100,7 @@ Warcat is provided without warranty and cannot guarantee the safety of your file
 
 
 * Homepage: https://github.com/chfoo/warcat
+* Documentation: http://warcat.readthedocs.org/
 * Questions?: https://answers.launchpad.net/warcat
 * Bugs?: https://github.com/chfoo/warcat/issues
 * PyPI: https://pypi.python.org/pypi/Warcat/

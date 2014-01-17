@@ -94,7 +94,10 @@ class Fields(StrSerializable, BytesSerializable):
 
     def iter_str(self):
         for name, value in self._list:
-            yield '{}: {}'.format(name, value)
+            if value:
+                yield '{}: {}'.format(name, value)
+            else:
+                yield '{}:'.format(name)
             yield NEWLINE
 
     def iter_bytes(self):

@@ -345,6 +345,25 @@ def rename_filename_dirs(dest_filename):
             break
 
 
+def truncate_filename_parts(path_parts, length=160):
+    '''Truncate and suffix filename path parts if they exceed the given length.
+
+    If the filename part is too long, the part is truncated and an underscore
+    plus a 6 letter hex (_xxxxxx) suffix is appended.
+    '''
+    new_parts = list(path_parts)
+
+    for index in range(len(path_parts)):
+        part = path_parts[index]
+
+        if len(part) > length:
+            hasher = hashlib.sha1(part.encode())
+            new_part = '{}_{}'.format(part[:length], hasher.hexdigest()[:6])
+            new_parts[index] = new_part
+
+    return new_parts
+
+
 def parse_http_date(s):
     t = email.utils.parsedate_tz(s)
 

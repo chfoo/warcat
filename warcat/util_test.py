@@ -67,6 +67,12 @@ class TestUtil(unittest.TestCase):
             util.append_index_filename(os.path.join('hello', 'index.php'))
         )
 
+    def test_truncate_filename_parts(self):
+        self.assertEqual(
+            ['a', 'b', 'c' * 160 + '_4658bd', 'd'],
+            util.truncate_filename_parts(['a', 'b', 'c' * 400, 'd'])
+        )
+
     def test_parse_http_date(self):
         self.assertEqual(datetime.datetime(1995, 11, 20, 19, 12, 8,
             tzinfo=datetime.timezone(datetime.timedelta(-1, 68400))),

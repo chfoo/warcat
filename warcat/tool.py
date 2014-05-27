@@ -109,7 +109,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
                             _logger.exception('Error on record %s',
                                 record.record_id)
                         else:
-                            raise e
+                            raise
 
                 if self.print_progress and self.num_records % 100 == 0:
                     s = next(throbber_iter)
@@ -224,8 +224,14 @@ class ExtractTool(BaseIterateTool):
         util.rename_filename_dirs(path)
         os.makedirs(dir_path, exist_ok=True)
 
-        with open(path, 'wb') as f:
-            shutil.copyfileobj(response, f)
+        try:
+            with open(path, 'wb') as f:
+                shutil.copyfileobj(response, f)
+        except http.client.IncompleteRead as error:
+            _logger.warning('Malformed HTTP response: %s', error)
+
+            with open(path, 'wb') as f:
+                f.write(error.partial)
 
         last_modified_str = response.getheader('Last-Modified')
 

@@ -1,0 +1,18 @@
+WARC/1.0
+WARC-Type: response
+WARC-Record-ID: <urn:uuid:37772126-f3be-42a4-8e05-1bd857919207>
+WARC-Warcinfo-ID: <urn:uuid:d747a889-61dc-43a1-889e-5367b2fea114>
+WARC-Target-URI: http://www.archiveteam.org/index.php?title=AAAAAA
+WARC-Date: 2013-04-09T00:03:47Z
+WARC-IP-Address: 1.2.3.4
+Content-Type: application/http;msgtype=response
+Content-Length: 73
+
+HTTP/1.0 200 OK
+Server: blah.com
+Transfer-Encoding: chunked
+
+3
+aa
+0
+

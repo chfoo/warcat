@@ -109,12 +109,15 @@ class Fields(StrSerializable, BytesSerializable):
         '''Parse a named field string and return a :class:`Fields`'''
 
         fields = Fields()
-        lines = collections.deque(re.split(newline, s))
+        lines = collections.deque(
+            s.split(newline) if isinstance(newline, str) else
+            re.split(newline, s)
+        )
 
-        while len(lines):
+        while lines:
             line = lines.popleft()
 
-            if line == '':
+            if not line:
                 continue
 
             name, value = line.split(':', 1)
@@ -128,10 +131,10 @@ class Fields(StrSerializable, BytesSerializable):
     def join_multilines(cls, value, lines):
         '''Scan for multiline value which is prefixed with a space or tab'''
 
-        while len(lines):
+        while lines:
             line = lines.popleft()
 
-            if line == '':
+            if not line:
                 break
             if line[0] not in (' ', '\t'):
                 lines.appendleft(line)

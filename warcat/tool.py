@@ -69,6 +69,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
         self.out_dir = out_dir
         self.print_progress = print_progress
         self.keep_going = keep_going
+        self.check_block_length = False
 
     def preprocess(self):
         pass
@@ -90,7 +91,8 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
 
             while True:
                 record, has_more = model.WARC.read_record(f,
-                    preserve_block=self.preserve_block)
+                    preserve_block=self.preserve_block,
+                    check_block_length=self.check_block_length)
 
                 skip = False
 
@@ -255,6 +257,7 @@ class VerifyTool(BaseIterateTool):
     def preprocess(self):
         self.record_ids = set()
         self.problems = 0
+        self.check_block_length = True
 
     def action(self, record):
         verify_actions = [

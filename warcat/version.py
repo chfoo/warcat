@@ -1,9 +1,9 @@
 '''Version info'''
 
-short_version = '2.3'
+short_version = '2.2'
 '''Short version in the form of N.N'''
 
-__version__ = short_version + 'a1'
+__version__ = short_version + '.3'
 '''Version in the form of N.N[.N]+[{a|b|c|rc}N[.N]+][.postN][.devN]'''
 
 

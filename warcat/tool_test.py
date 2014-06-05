@@ -36,6 +36,28 @@ class TestTool(unittest.TestCase):
             self.assertEqual(1, len(
                 glob.glob(os.path.join(temp_dir, '*', '*index*'))))
 
+    def test_extract_long_url(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            tool = ExtractTool([os.path.join(self.test_dir, 'long_url.warc')],
+                out_dir=temp_dir, preserve_block=False)
+            tool.process()
+
+            self.assertEqual(1, len(
+                glob.glob(os.path.join(temp_dir, '*', '*index*'))))
+
+            files = list(glob.glob(os.path.join(temp_dir, '*', '*index*')))
+            filename = files[0].rsplit('/', 1)[-1]
+            self.assertLess(len(filename), 180)
+
+    def test_extract_bad_http_chunked_content(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            tool = ExtractTool([os.path.join(self.test_dir, 'bad_http_chunked_content.warc')],
+                out_dir=temp_dir, preserve_block=False)
+            tool.process()
+
+            self.assertEqual(1, len(
+                glob.glob(os.path.join(temp_dir, '*', '*index*'))))
+
     def test_concat(self):
         with tempfile.NamedTemporaryFile() as f:
             tool = ConcatTool([os.path.join(self.test_dir, 'at.warc')],

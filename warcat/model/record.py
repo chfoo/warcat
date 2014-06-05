@@ -37,13 +37,17 @@ class Record(BytesSerializable):
         self.file_offset = None
 
     @classmethod
-    def load(cls, file_obj, preserve_block=False):
+    def load(cls, file_obj, preserve_block=False, check_block_length=True):
         '''Parse and return a :class:`Record`
 
         :param file_object: A file-like object.
         :param preserve_block: If `True`, content blocks are not parsed
             for fields and payloads. Enabling this feature ensures
             preservation of content length and hash digests.
+        :param check_block_length: If `True`, the length of the blocks are
+            checked to a serialized version by Warcat. This can be useful for
+            checking whether Warcat will output blocks with correct
+            whitespace.
         '''
 
         _logger.debug('Record start at %d 0x%x', file_obj.tell(),
@@ -65,12 +69,13 @@ class Record(BytesSerializable):
         else:
             record.content_block = BinaryBlock.load(file_obj, block_length)
 
-        new_content_length = record.content_block.length
+        if check_block_length:
+            new_content_length = record.content_block.length
 
-        if block_length != new_content_length:
-            _logger.warn('Content block length changed from %d to %d',
-                record.content_length, new_content_length)
-            record.content_length = new_content_length
+            if block_length != new_content_length:
+                _logger.warn('Content block length changed from %d to %d',
+                    record.content_length, new_content_length)
+                record.content_length = new_content_length
 
         return record
 

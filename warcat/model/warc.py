@@ -60,7 +60,8 @@ class WARC(BytesSerializable):
             return f
 
     @classmethod
-    def read_record(cls, file_object, preserve_block=False):
+    def read_record(cls, file_object, preserve_block=False,
+    check_block_length=True):
         '''Return a record and whether there are more records to read.
 
         .. seealso:: :class:`Record`
@@ -70,7 +71,8 @@ class WARC(BytesSerializable):
             be read.
         '''
 
-        record = Record.load(file_object, preserve_block=preserve_block)
+        record = Record.load(file_object, preserve_block=preserve_block,
+            check_block_length=check_block_length)
         _logger.debug('Finished reading a record %s', record.record_id)
 
         data = file_object.read(len(FIELD_DELIM_BYTES))

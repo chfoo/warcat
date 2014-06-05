@@ -69,6 +69,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
         self.out_dir = out_dir
         self.print_progress = print_progress
         self.keep_going = keep_going
+        self.check_block_length = False
 
     def preprocess(self):
         pass
@@ -90,7 +91,8 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
 
             while True:
                 record, has_more = model.WARC.read_record(f,
-                    preserve_block=self.preserve_block)
+                    preserve_block=self.preserve_block,
+                    check_block_length=self.check_block_length)
 
                 skip = False
 
@@ -109,7 +111,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
                             _logger.exception('Error on record %s',
                                 record.record_id)
                         else:
-                            raise e
+                            raise
 
                 if self.print_progress and self.num_records % 100 == 0:
                     s = next(throbber_iter)
@@ -213,20 +215,25 @@ class ExtractTool(BaseIterateTool):
         data = file_obj.read(binary_block.length)
         response = util.parse_http_response(data)
         path_list = util.split_url_to_filename(url)
+        path_list = util.truncate_filename_parts(path_list)
         path = os.path.join(self.out_dir, *path_list)
         dir_path = os.path.dirname(path)
 
         if os.path.isdir(path):
             path = util.append_index_filename(path)
 
-        # FIXME: long paths such as urls with a long query string may fail
-
         _logger.debug('Extracting %s to %s', record.record_id, path)
         util.rename_filename_dirs(path)
         os.makedirs(dir_path, exist_ok=True)
 
-        with open(path, 'wb') as f:
-            shutil.copyfileobj(response, f)
+        try:
+            with open(path, 'wb') as f:
+                shutil.copyfileobj(response, f)
+        except http.client.IncompleteRead as error:
+            _logger.warning('Malformed HTTP response: %s', error)
+
+            with open(path, 'wb') as f:
+                f.write(error.partial)
 
         last_modified_str = response.getheader('Last-Modified')
 
@@ -250,6 +257,7 @@ class VerifyTool(BaseIterateTool):
     def preprocess(self):
         self.record_ids = set()
         self.problems = 0
+        self.check_block_length = True
 
     def action(self, record):
         verify_actions = [

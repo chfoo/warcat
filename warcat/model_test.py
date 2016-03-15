@@ -1,3 +1,5 @@
+import gzip
+
 from warcat import model, util
 import io
 import os.path
@@ -102,11 +104,37 @@ class TestReading(unittest.TestCase):
         warc.load(os.path.join(self.test_dir, 'at.warc'))
         self.assertEqual(8, len(warc.records))
 
+        record = warc.records[0]
+        file_obj = record.content_block.binary_block.get_file()
+        self.assertTrue(file_obj)
+
     def test_read_at_warc_gzip(self):
         warc = model.WARC()
 
         warc.load(os.path.join(self.test_dir, 'at.warc.gz'))
         self.assertEqual(8, len(warc.records))
+
+        record = warc.records[0]
+        file_obj = record.content_block.binary_block.get_file()
+        self.assertTrue(file_obj)
+
+    def test_read_at_warc_memory_gzip(self):
+        warc = model.WARC()
+
+        data = io.BytesIO()
+
+        with open(os.path.join(self.test_dir, 'at.warc.gz'), 'rb') as file:
+            data.write(file.read())
+
+        data.seek(0)
+
+        file_obj = gzip.GzipFile(fileobj=data)
+        warc.read_file_object(file_obj)
+        self.assertEqual(8, len(warc.records))
+
+        record = warc.records[0]
+        file_obj = record.content_block.binary_block.get_file()
+        self.assertTrue(file_obj)
 
     def test_warc_to_bytes(self):
         warc = model.WARC()

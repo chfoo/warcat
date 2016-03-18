@@ -73,6 +73,8 @@ class BinaryFileRef(metaclass=abc.ABCMeta):
         This is a convenience function to setting the attributes individually.
         '''
 
+        assert file
+
         if hasattr(file, 'read'):
             self.file_obj = file
         else:

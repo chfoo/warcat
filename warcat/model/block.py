@@ -37,7 +37,7 @@ class BinaryBlock(ContentBlock, BinaryFileRef):
         '''Return a :class:`BinaryBlock` using given file object'''
 
         binary_block = BinaryBlock()
-        binary_block.set_file(file_obj.name, offset=file_obj.tell(),
+        binary_block.set_file(file_obj.name or file_obj, offset=file_obj.tell(),
             length=length)
 
         file_obj.seek(file_obj.tell() + length)
@@ -80,7 +80,7 @@ class BlockWithPayload(ContentBlock):
         '''
 
         binary_block = BinaryBlock()
-        binary_block.set_file(file_obj.name, file_obj.tell(), length)
+        binary_block.set_file(file_obj.name or file_obj, file_obj.tell(), length)
 
         try:
             field_length = util.find_file_pattern(file_obj, FIELD_DELIM_BYTES,
@@ -93,7 +93,7 @@ class BlockWithPayload(ContentBlock):
         payload_length = length - field_length
         payload = Payload()
 
-        payload.set_file(file_obj.name, offset=file_obj.tell(),
+        payload.set_file(file_obj.name or file_obj, offset=file_obj.tell(),
             length=payload_length)
         _logger.debug('Field length=%d', field_length)
         _logger.debug('Payload length=%d', payload_length)

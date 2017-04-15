@@ -18,7 +18,7 @@ class ContentBlock(BytesSerializable):
 
         if content_type.startswith('application/http'):
             return BlockWithPayload.load(file_obj, length,
-                field_cls=HTTPHeader)
+                field_cls=HTTPHeader, strict=False)
         elif content_type.startswith('application/warc-fields'):
             return BlockWithPayload.load(file_obj, length, field_cls=Fields)
         else:
@@ -71,7 +71,7 @@ class BlockWithPayload(ContentBlock):
         self.binary_block = None
 
     @classmethod
-    def load(cls, file_obj, length, field_cls):
+    def load(cls, file_obj, length, field_cls, strict=True):
         '''Return a :class:`BlockWithPayload`
 
         :param file_obj: The file object
@@ -89,7 +89,9 @@ class BlockWithPayload(ContentBlock):
             # No payload
             field_length = length
 
-        fields = field_cls.parse(file_obj.read(field_length).decode())
+        errors = 'strict' if strict else 'replace'
+        field_str = file_obj.read(field_length).decode(errors=errors)
+        fields = field_cls.parse(field_str)
         payload_length = length - field_length
         payload = Payload()
 

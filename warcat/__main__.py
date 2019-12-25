@@ -11,9 +11,14 @@ import warcat.version
 _logger = logging.getLogger(__name__)
 
 
+class WordSplittingArgumentParser(argparse.ArgumentParser):
+    def convert_arg_line_to_args(self, arg_line):
+        return arg_line.split()
+
 def main():
-    arg_parser = argparse.ArgumentParser(
-        description='Tool for handling Web ARChive (WARC) files.')
+    arg_parser = WordSplittingArgumentParser(
+        description='Tool for handling Web ARChive (WARC) files.',
+        fromfile_prefix_chars='@')
     arg_parser.add_argument('--version', action='version',
         version=warcat.version.__version__)
     arg_parser.add_argument('command',

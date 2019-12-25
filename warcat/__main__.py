@@ -35,6 +35,9 @@ def main():
     arg_parser.add_argument('--record', action='append',
         help='Apply command to record with given ID when reading. '
         'Can be used more than once.')
+    arg_parser.add_argument('--target-uri', action='append',
+        help='Only process records with the given target URI.'
+        'Can be used more than once.')
     arg_parser.add_argument('--preserve-block', action='store_true',
         help="Don't attempt to parse content blocks. Parsed content blocks"
         " may not match content-length and hash digests on serialization.")
@@ -97,6 +100,7 @@ def build_tool(class_, args):
         out_dir=args.output_dir,
         print_progress=args.progress,
         keep_going=args.keep_going,
+        read_target_uris=args.target_uri,
     )
 
 

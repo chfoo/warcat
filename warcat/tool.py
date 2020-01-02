@@ -52,7 +52,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
 
     def __init__(self, filenames, out_file=None, write_gzip=False,
     force_read_gzip=None, read_record_ids=None, preserve_block=True,
-    out_dir=None, print_progress=False, keep_going=False):
+    out_dir=None, print_progress=False, keep_going=False, read_target_uris=None):
         if not out_file:
             try:
                 out_file = sys.stdout.buffer
@@ -69,6 +69,7 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
         self.out_dir = out_dir
         self.print_progress = print_progress
         self.keep_going = keep_going
+        self.read_target_uris = read_target_uris
         self.check_block_length = False
 
     def preprocess(self):
@@ -99,11 +100,16 @@ class BaseIterateTool(metaclass=abc.ABCMeta):
                 if self.read_record_ids:
                     if record.record_id not in self.read_record_ids:
                         skip = True
+                        _logger.debug('Skipping %s due to record id filter', record.record_id)
 
-                if skip:
-                    _logger.debug('Skipping %s due to filter',
-                        record.record_id)
-                else:
+
+                if self.read_target_uris:
+                    if record.target_uri not in self.read_target_uris:
+                        skip = True
+                        _logger.debug('Skipping %s due to target URI filter', record.target_uri)
+
+
+                if not skip:
                     try:
                         self.action(record)
                     except Exception as e:

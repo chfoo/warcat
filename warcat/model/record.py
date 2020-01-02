@@ -112,6 +112,14 @@ class Record(BytesSerializable):
     def warc_type(self, s):
         self.header.fields['WARC-Type'] = s
 
+    @property
+    def target_uri(self):
+        return self.header.fields.get('WARC-Target-URI', '')
+
+    @target_uri.setter
+    def target_uri(self, s):
+        self.header.fields['WARC-Target-URI'] = s
+
     def iter_bytes(self):
         _logger.debug('Iter bytes on record %s', self.record_id)
 

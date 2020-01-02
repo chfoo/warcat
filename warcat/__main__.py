@@ -11,9 +11,14 @@ import warcat.version
 _logger = logging.getLogger(__name__)
 
 
+class WordSplittingArgumentParser(argparse.ArgumentParser):
+    def convert_arg_line_to_args(self, arg_line):
+        return arg_line.split()
+
 def main():
-    arg_parser = argparse.ArgumentParser(
-        description='Tool for handling Web ARChive (WARC) files.')
+    arg_parser = WordSplittingArgumentParser(
+        description='Tool for handling Web ARChive (WARC) files.',
+        fromfile_prefix_chars='@')
     arg_parser.add_argument('--version', action='version',
         version=warcat.version.__version__)
     arg_parser.add_argument('command',
@@ -34,6 +39,9 @@ def main():
         help='Increase verbosity. Can be used more than once.')
     arg_parser.add_argument('--record', action='append',
         help='Apply command to record with given ID when reading. '
+        'Can be used more than once.')
+    arg_parser.add_argument('--target-uri', action='append',
+        help='Only process records with the given target URI.'
         'Can be used more than once.')
     arg_parser.add_argument('--preserve-block', action='store_true',
         help="Don't attempt to parse content blocks. Parsed content blocks"
@@ -97,6 +105,7 @@ def build_tool(class_, args):
         out_dir=args.output_dir,
         print_progress=args.progress,
         keep_going=args.keep_going,
+        read_target_uris=args.target_uri,
     )
 
 

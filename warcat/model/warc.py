@@ -22,13 +22,13 @@ class WARC(BytesSerializable):
     def __init__(self):
         self.records = []
 
-    def load(self, filename):
+    def load(self, filename, force_gzip=False):
         '''Open and load the contents of the given filename.
 
         The records are located in :attr:`records`.
         '''
 
-        f = self.open(filename)
+        f = self.open(filename, force_gzip=force_gzip)
         self.read_file_object(f)
         f.close()
 

@@ -3,6 +3,7 @@ WARCAT: Web ARChive (WARC) Archiving Tool
 
 Tool and library for handling Web ARChive (WARC) files.
 
+2024-10-11: Please have a look at a new project `warcat-rs <https://github.com/chfoo/warcat-rs>`_. It is written in Rust, peforms faster and more correctly, and is designed to work with other programs using JSON. Missing features and bugs mentioned here will also be addressed in the new project soon.
 
 Quick Start
 ===========

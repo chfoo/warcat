@@ -20,4 +20,7 @@ setup(name='Warcat',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
         'Topic :: System :: Archiving',
     ],
+    entry_points = {
+      'console_scripts': ['warcat=warcat.__main__:main'],
+    },
 )
